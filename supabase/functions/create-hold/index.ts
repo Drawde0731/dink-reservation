@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
     if (!turnstile_token) {
       return json({ error: 'Bot protection token is required', code: 'TURNSTILE_MISSING' }, 422)
     }
-    // Dev bypass sentinel from TurnstileWidget when no site key is set
-    if (turnstile_token !== '__dev_bypass__') {
+    // Dev bypass or admin walk-in bypass — skip Cloudflare verification
+    if (turnstile_token !== '__dev_bypass__' && turnstile_token !== '__admin_walkin__') {
       const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
