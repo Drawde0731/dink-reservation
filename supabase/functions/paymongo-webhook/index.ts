@@ -108,14 +108,44 @@ Deno.serve(async (req) => {
       .eq('provider_payment_id', checkoutSessionId)
   }
 
-  // Queue confirmation email (Phase 7 processes this via the notifications table)
-  await serviceClient.from('notifications').insert({
-    booking_id: bookingId,
-    type: 'confirmation',
-    recipient_email: booking.customer_email,
-    scheduled_at: new Date().toISOString(),
-    status: 'pending',
-  })
+  // Activate the confirmation notification created by create-hold
+  // (move its scheduled_at from far-future to now so send-notifications picks it up)
+  const { error: notifUpdateErr } = await serviceClient
+    .from('notifications')
+    .update({ scheduled_at: new Date().toISOString() })
+    .eq('booking_id', bookingId)
+    .eq('type', 'confirmation')
+    .eq('status', 'pending')
+
+  if (notifUpdateErr) {
+    // Fallback: insert a new confirmation notification (without manage link token)
+    console.warn('paymongo-webhook: could not activate existing notification, inserting fallback')
+    await serviceClient.from('notifications').insert({
+      booking_id: bookingId,
+      type: 'confirmation',
+      recipient_email: booking.customer_email,
+      scheduled_at: new Date().toISOString(),
+      status: 'pending',
+    })
+  }
+
+  // Schedule 24h reminder notification
+  // Look up booking start_at to compute reminder time
+  const { data: bookingTime } = await serviceClient
+    .from('bookings').select('start_at').eq('id', bookingId).single()
+
+  if (bookingTime?.start_at) {
+    const reminderAt = new Date(new Date(bookingTime.start_at).getTime() - 24 * 60 * 60 * 1000)
+    if (reminderAt > new Date()) {
+      await serviceClient.from('notifications').insert({
+        booking_id: bookingId,
+        type: 'reminder',
+        recipient_email: booking.customer_email,
+        scheduled_at: reminderAt.toISOString(),
+        status: 'pending',
+      })
+    }
+  }
 
   // Audit log
   await serviceClient.from('audit_logs').insert({

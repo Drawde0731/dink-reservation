@@ -21,6 +21,7 @@ import { corsHeaders, handleOptions, json } from '../_shared/cors.ts'
 import { serviceClient } from '../_shared/supabase-service.ts'
 import { dayOfWeekManila, manilaToUTC, parseMinutes, todayManila } from '../_shared/time.ts'
 import { generateToken, hashToken } from '../_shared/token.ts'
+import { encryptString } from '../_shared/encrypt.ts'
 
 const VENUE_ID = '00000000-0000-0000-0000-000000000002'
 
@@ -213,6 +214,30 @@ Deno.serve(async (req) => {
     }
     console.error('create-hold insert error:', insertErr)
     return json({ error: 'Failed to create booking', code: 'DB_ERROR' }, 500)
+  }
+
+  // Queue confirmation notification (status=pending, far-future scheduled_at).
+  // The paymongo-webhook sets scheduled_at=now() after payment success to activate it.
+  // The encrypted management token is stored in metadata so the email can include
+  // the full manage URL (token decrypted and injected at send time by send-notifications).
+  // Migration 20260825000005 adds the metadata jsonb column.
+  try {
+    const encryptedToken = await encryptString(rawToken)
+    const { data: bk } = await serviceClient
+      .from('bookings').select('id').eq('booking_reference', bookingReference).single()
+
+    await serviceClient.from('notifications').insert({
+      booking_id: bk?.id,
+      type: 'confirmation',
+      recipient_email: customer_email.trim().toLowerCase(),
+      // Far future: paymongo-webhook moves this to now() on payment confirmed
+      scheduled_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'pending',
+      metadata: { encrypted_token: encryptedToken },
+    })
+  } catch (err) {
+    // Non-fatal: booking hold exists; email will send without manage link
+    console.warn('create-hold: could not queue confirmation notification:', err)
   }
 
   return json({
