@@ -1,26 +1,28 @@
-import { useMemo } from 'react'
-import type { OperatingHoursRow, TimeSlot } from '../types'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../../lib/supabase'
+import type { TimeSlot } from '../types'
 
-// ponytail: Phase 3 generates slots client-side from operating hours only.
-// No conflict checking — bookings table has no anon read policy.
-// Phase 4 replaces this with an Edge Function call that returns authoritative
-// availability (server-side conflict checking via the DB exclusion constraint).
+// ── Pure helpers ──────────────────────────────────────────────────────────────
+// Exported for unit testing. Do not call Edge Functions here.
 
-function parseTime(t: string): number {
-  // '08:00' or '08:00:00' → minutes since midnight
+function parseMinutes(t: string): number {
   const parts = t.split(':')
   return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
 }
 
+/**
+ * Generate slots from open_time to close_time at slotMinutes intervals.
+ * Enforces the slot boundary: a slot is only generated if it ends by closeMin.
+ * Midnight close (closes_next_day=true) is treated as minute 1440.
+ */
 export function generateSlots(
   openTime: string,
   closeTime: string,
   closesNextDay: boolean,
   slotMinutes: number,
 ): TimeSlot[] {
-  const openMin = parseTime(openTime)
-  // midnight treated as 24*60 = 1440 when closes_next_day is true
-  const closeMin = closesNextDay ? 24 * 60 : parseTime(closeTime)
+  const openMin = parseMinutes(openTime)
+  const closeMin = closesNextDay ? 24 * 60 : parseMinutes(closeTime)
 
   const slots: TimeSlot[] = []
   let cursor = openMin
@@ -28,9 +30,10 @@ export function generateSlots(
   while (cursor + slotMinutes <= closeMin) {
     const endCursor = cursor + slotMinutes
     const fmtStart = `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`
-    const fmtEnd = endCursor === 1440
-      ? '00:00'
-      : `${String(Math.floor(endCursor / 60)).padStart(2, '0')}:${String(endCursor % 60).padStart(2, '0')}`
+    const fmtEnd =
+      endCursor === 1440
+        ? '00:00'
+        : `${String(Math.floor(endCursor / 60)).padStart(2, '0')}:${String(endCursor % 60).padStart(2, '0')}`
 
     slots.push({ startTime: fmtStart, endTime: fmtEnd, isAvailable: true })
     cursor += slotMinutes
@@ -39,44 +42,55 @@ export function generateSlots(
   return slots
 }
 
+// ── Edge Function hook ────────────────────────────────────────────────────────
+// Calls get-availability Edge Function for server-authoritative slot availability.
+// Replaces the Phase 3 client-side stub.
+
 interface Params {
   date: string | null
-  hoursRows: OperatingHoursRow[]
-  slotDurationMinutes: number
-  minAdvanceMinutes: number
+  courtId: string | null
 }
 
-export function useSlotAvailability({ date, hoursRows, slotDurationMinutes, minAdvanceMinutes }: Params) {
-  return useMemo<TimeSlot[]>(() => {
-    if (!date || hoursRows.length === 0) return []
+interface State {
+  slots: TimeSlot[]
+  loading: boolean
+  error: string | null
+}
 
-    const jsDate = new Date(date + 'T00:00:00')
-    const dayOfWeek = jsDate.getDay()  // 0=Sun, which matches DB schema
+export function useCourtAvailability({ date, courtId }: Params): State {
+  const [state, setState] = useState<State>({ slots: [], loading: false, error: null })
 
-    const hoursRow = hoursRows.find(h => h.day_of_week === dayOfWeek)
-    if (!hoursRow || hoursRow.is_closed) return []
+  useEffect(() => {
+    if (!date || !courtId) {
+      setState({ slots: [], loading: false, error: null })
+      return
+    }
 
-    const allSlots = generateSlots(
-      hoursRow.open_time,
-      hoursRow.close_time,
-      hoursRow.closes_next_day,
-      slotDurationMinutes,
-    )
+    let cancelled = false
+    setState(s => ({ ...s, loading: true, error: null }))
 
-    // Hide slots that start within min_advance_minutes from now
-    const nowManila = new Date(
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Manila',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false,
-      }).format(new Date()).replace(/(\d+)\/(\d+)\/(\d+),\s*(\d+):(\d+)/, '$3-$1-$2T$4:$5'),
-    )
+    supabase.functions
+      .invoke('get-availability', { body: { court_id: courtId, date } })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          setState({ slots: [], loading: false, error: error.message })
+          return
+        }
+        const raw = (data?.slots ?? []) as { start_time: string; end_time: string; is_available: boolean }[]
+        setState({
+          slots: raw.map(s => ({
+            startTime: s.start_time,
+            endTime: s.end_time,
+            isAvailable: s.is_available,
+          })),
+          loading: false,
+          error: null,
+        })
+      })
 
-    const todayManila = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date())
-    if (date !== todayManila) return allSlots
+    return () => { cancelled = true }
+  }, [date, courtId])
 
-    // For today: filter out past slots + slots within min advance window
-    const nowMinutes = nowManila.getHours() * 60 + nowManila.getMinutes() + minAdvanceMinutes
-    return allSlots.filter(slot => parseTime(slot.startTime) >= nowMinutes)
-  }, [date, hoursRows, slotDurationMinutes, minAdvanceMinutes])
+  return state
 }

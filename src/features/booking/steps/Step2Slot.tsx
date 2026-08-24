@@ -1,14 +1,11 @@
 import { Button } from '../../../components/ui/Button'
-import { TimeSlotButton } from '../components/TimeSlotButton'
-import { useSlotAvailability } from '../hooks/useSlotAvailability'
-import type { BookingSelection, CourtRow, OperatingHoursRow, PricingRuleRow, VenueSettingsRow } from '../types'
-import { formatPHP } from '../../../lib/constants'
+import { CourtSlotSection } from '../components/CourtSlotSection'
+import type { BookingSelection, CourtRow, PricingRuleRow, VenueSettingsRow } from '../types'
 
 interface Props {
   selection: BookingSelection
   courts: CourtRow[]
   pricing: PricingRuleRow[]
-  hours: OperatingHoursRow[]
   settings: VenueSettingsRow
   onUpdate: (partial: Partial<BookingSelection>) => void
   onNext: () => void
@@ -21,29 +18,10 @@ function formatDisplayDate(dateStr: string): string {
   return dt.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-export function Step2Slot({ selection, courts, pricing, hours, settings, onUpdate, onNext, onBack }: Props) {
-  const slots = useSlotAvailability({
-    date: selection.date,
-    hoursRows: hours,
-    slotDurationMinutes: settings.slot_duration_minutes,
-    minAdvanceMinutes: settings.min_advance_minutes,
-  })
-
-  const activePricing = (courtId: string) =>
-    pricing.find(p => p.court_id === courtId)
-
-  function selectSlot(court: CourtRow, startTime: string, endTime: string) {
-    onUpdate({
-      courtId: court.id,
-      courtName: court.name,
-      startTime,
-      endTime,
-      durationMinutes: settings.slot_duration_minutes,
-    })
+export function Step2Slot({ selection, courts, pricing, onUpdate, onNext, onBack }: Props) {
+  function selectSlot(courtId: string, courtName: string, startTime: string, endTime: string) {
+    onUpdate({ courtId, courtName, startTime, endTime })
   }
-
-  const isSlotSelected = (courtId: string, startTime: string) =>
-    selection.courtId === courtId && selection.startTime === startTime
 
   const canContinue = !!selection.courtId && !!selection.startTime
 
@@ -56,62 +34,19 @@ export function Step2Slot({ selection, courts, pricing, hours, settings, onUpdat
         )}
       </div>
 
-      {slots.length === 0 && (
-        <div className="rounded-xl border border-brand-border bg-brand-surface p-6 text-center">
-          <p className="text-text-muted text-sm">No available slots for this date.</p>
-          <button
-            type="button"
-            className="mt-2 text-sm text-brand-green-dark underline"
-            onClick={onBack}
-          >
-            Choose a different date
-          </button>
-        </div>
-      )}
-
-      {courts.map((court) => {
-        const rule = activePricing(court.id)
-
-        return (
-          <div key={court.id} className="rounded-xl border border-brand-border overflow-hidden">
-            {/* Court header */}
-            <div className="bg-brand-surface px-4 py-3 flex items-center justify-between border-b border-brand-border">
-              <div>
-                <h3 className="font-semibold text-text-primary">{court.name}</h3>
-                {rule && (
-                  <p className="text-xs text-text-muted">{formatPHP(rule.price_per_hour)} / hour</p>
-                )}
-              </div>
-              {selection.courtId === court.id && selection.courtName && (
-                <span className="text-xs font-medium text-brand-green-dark bg-brand-green-light/30 px-2 py-0.5 rounded-full">
-                  Selected
-                </span>
-              )}
-            </div>
-
-            {/* Slot grid */}
-            {slots.length > 0 ? (
-              <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {slots.map((slot) => (
-                  <TimeSlotButton
-                    key={slot.startTime}
-                    startTime={slot.startTime}
-                    endTime={slot.endTime}
-                    isAvailable={slot.isAvailable}
-                    isSelected={isSlotSelected(court.id, slot.startTime)}
-                    onSelect={() => selectSlot(court, slot.startTime, slot.endTime)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-sm text-text-muted text-center">No slots today</div>
-            )}
-          </div>
-        )
-      })}
+      {courts.map((court) => (
+        <CourtSlotSection
+          key={court.id}
+          court={court}
+          date={selection.date}
+          pricing={pricing}
+          selection={selection}
+          onSelectSlot={selectSlot}
+        />
+      ))}
 
       <p className="text-xs text-text-muted text-center">
-        Slots are held for 10 minutes after booking — complete payment to confirm.
+        Slots are held for 10 minutes after you start checkout — complete payment to confirm.
       </p>
 
       <div className="flex gap-3">
