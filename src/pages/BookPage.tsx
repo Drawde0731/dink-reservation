@@ -1,10 +1,15 @@
+import { BookingFlow } from '../features/booking/BookingFlow'
+
 export function BookPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16">
-      <h1 className="text-3xl font-bold text-brand-green-dark">Book a Court</h1>
-      <p className="mt-2 text-text-muted">
-        Court calendar and time selection — Phase 3.
-      </p>
+    <div className="min-h-screen bg-brand-cream py-8">
+      <div className="container mx-auto px-4 max-w-2xl">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-text-primary">Book a Court</h1>
+          <p className="text-text-muted mt-1">Beanstalk Dink · Marilao, Bulacan</p>
+        </div>
+        <BookingFlow />
+      </div>
     </div>
   )
 }
