@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   // Fetch booking
   const { data: booking, error } = await serviceClient
     .from('bookings')
-    .select('id, status, management_token_hash, start_at, hold_expires_at, venue_id')
+    .select('id, status, management_token_hash, start_at, hold_expires_at, venue_id, customer_email')
     .eq('booking_reference', booking_reference)
     .single()
 
@@ -84,7 +84,64 @@ Deno.serve(async (req) => {
     metadata: { booking_reference, refund_eligible },
   })
 
-  // ponytail: Phase 6 triggers PayMongo refund here when refund_eligible=true.
+  // Trigger PayMongo refund if eligible
+  if (refundEligible) {
+    const { data: payment } = await serviceClient
+      .from('payments')
+      .select('provider_payment_id, amount')
+      .eq('booking_id', booking.id)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (payment?.provider_payment_id) {
+      try {
+        const secret = Deno.env.get('PAYMONGO_SECRET_KEY')
+        if (secret) {
+          // PayMongo refund API: POST /v1/refunds
+          const refundRes = await fetch('https://api.paymongo.com/v1/refunds', {
+            method: 'POST',
+            headers: {
+              Authorization: 'Basic ' + btoa(secret + ':'),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              data: {
+                attributes: {
+                  payment_id: payment.provider_payment_id,
+                  amount: payment.amount,
+                  reason: 'customer_request',
+                },
+              },
+            }),
+          })
+          if (!refundRes.ok) {
+            console.error('cancel-booking: PayMongo refund failed', await refundRes.text())
+          } else {
+            // Update payment status
+            await serviceClient
+              .from('payments')
+              .update({ status: 'refunded' })
+              .eq('provider_payment_id', payment.provider_payment_id)
+          }
+        }
+      } catch (err) {
+        // Refund failure is non-fatal — booking is still cancelled;
+        // admin must process refund manually via PayMongo dashboard.
+        console.error('cancel-booking: refund error (manual action required):', err)
+      }
+    }
+  }
+
+  // Queue cancellation email (Phase 7 processes this)
+  await serviceClient.from('notifications').insert({
+    booking_id: booking.id,
+    type: 'cancellation',
+    recipient_email: booking.customer_email ?? '',
+    scheduled_at: new Date().toISOString(),
+    status: 'pending',
+  })
 
   return json({ success: true, refund_eligible: refundEligible })
 })

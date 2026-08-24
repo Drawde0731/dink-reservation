@@ -41,6 +41,9 @@ export function BookingDetailPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
 
+  const justPaid = searchParams.get('paid') === '1'
+  const justCancelled = searchParams.get('cancelled') === '1'
+
   const [booking, setBooking] = useState<BookingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -48,24 +51,35 @@ export function BookingDetailPage() {
   const [cancelDone, setCancelDone] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!reference || !token) {
-      setLoading(false)
-      setFetchError(null)   // handled below as "no token" case
-      return
+  async function fetchBooking() {
+    if (!reference || !token) { setLoading(false); return }
+    const { data, error } = await supabase.functions.invoke('get-booking', {
+      body: { booking_reference: reference, management_token: token },
+    })
+    if (error || data?.error) {
+      setFetchError(data?.error ?? error?.message ?? 'Failed to load booking.')
+    } else {
+      setBooking(data.booking as BookingDetail)
     }
+  }
 
-    supabase.functions
-      .invoke('get-booking', { body: { booking_reference: reference, management_token: token } })
-      .then(({ data, error }) => {
-        if (error || data?.error) {
-          setFetchError(data?.error ?? error?.message ?? 'Failed to load booking.')
-        } else {
-          setBooking(data.booking as BookingDetail)
-        }
-      })
-      .finally(() => setLoading(false))
+  useEffect(() => {
+    if (!reference || !token) { setLoading(false); return }
+
+    fetchBooking().finally(() => setLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference, token])
+
+  // After payment redirect: poll until booking is confirmed (webhook may be in-flight)
+  useEffect(() => {
+    if (!justPaid || !booking || booking.status === 'confirmed') return
+    const interval = setInterval(() => {
+      fetchBooking()
+    }, 3000)
+    const timeout = setTimeout(() => clearInterval(interval), 30_000)
+    return () => { clearInterval(interval); clearTimeout(timeout) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justPaid, booking?.status])
 
   async function handleCancel() {
     if (!reference || !token || !booking) return
@@ -129,6 +143,25 @@ export function BookingDetailPage() {
   return (
     <div className="min-h-screen bg-brand-cream py-8">
       <div className="container mx-auto px-4 max-w-2xl space-y-6">
+
+        {/* Payment processing banner: shown until webhook confirms */}
+        {justPaid && booking.status !== 'confirmed' && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <div className="flex justify-center mb-3">
+              <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="font-semibold text-amber-800">Payment received — confirming your booking…</p>
+            <p className="text-sm text-amber-700 mt-1">This usually takes a few seconds. Please don't close this page.</p>
+          </div>
+        )}
+
+        {/* Cancelled payment banner */}
+        {justCancelled && !cancelDone && (
+          <div className="rounded-xl border border-brand-border bg-brand-surface p-4 text-center">
+            <p className="text-sm text-text-muted">Payment was not completed. Your slot is still held for a few more minutes.</p>
+            <Link to="/book" className="mt-2 inline-block text-sm text-brand-green-dark underline">Book again →</Link>
+          </div>
+        )}
 
         {/* Status banner */}
         {booking.status === 'confirmed' && (

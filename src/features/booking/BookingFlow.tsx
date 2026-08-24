@@ -100,11 +100,29 @@ export function BookingFlow() {
         return
       }
 
-      // Phase 6: here we'd redirect to PayMongo. For now, navigate to confirmation.
-      // The management_token is passed in the URL; Phase 7 (email) will also send it.
+      // Step 2: create PayMongo checkout session
       const ref = result.booking_reference as string
       const token = result.management_token as string
-      navigate(`/booking/${ref}?token=${token}`)
+
+      const { data: checkoutResult, error: checkoutErr } = await supabase.functions.invoke(
+        'create-checkout-session',
+        { body: { booking_reference: ref, management_token: token } },
+      )
+
+      if (checkoutErr || checkoutResult?.error) {
+        // Checkout session creation failed. Hold still exists and will expire.
+        // Redirect to booking detail so the customer knows their reference.
+        setHoldError({
+          code: checkoutResult?.code ?? 'CHECKOUT_ERROR',
+          message: checkoutResult?.error ?? checkoutErr?.message ?? 'Failed to start payment. Your slot is held for 10 minutes.',
+        })
+        navigate(`/booking/${ref}?token=${token}`)
+        return
+      }
+
+      // Redirect to PayMongo checkout (full page navigation)
+      const checkoutUrl = checkoutResult.checkout_url as string
+      window.location.href = checkoutUrl
     } finally {
       setIsSubmitting(false)
     }
