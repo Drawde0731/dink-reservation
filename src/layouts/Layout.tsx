@@ -3,6 +3,14 @@ import { Link, Outlet } from 'react-router-dom'
 export function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-brand-cream">
+      {/* Accessibility: skip nav for keyboard/screen-reader users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[#276749] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:outline-none"
+      >
+        Skip to content
+      </a>
+
       <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <Link
@@ -22,7 +30,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Outlet />
       </main>
 

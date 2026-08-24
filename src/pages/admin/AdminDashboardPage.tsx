@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { Button } from '../../components/ui/Button'
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
 import { cn } from '../../lib/cn'
+import { usePageTitle } from '../../lib/usePageTitle'
 
 interface BookingRow {
   id: string
@@ -59,6 +60,7 @@ const statusColor: Record<string, string> = {
 }
 
 export function AdminDashboardPage() {
+  usePageTitle('Admin — Bookings')
   const [date, setDate] = useState(todayManila)
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
