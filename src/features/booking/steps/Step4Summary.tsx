@@ -1,5 +1,7 @@
+import { useState, useCallback } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { PriceBreakdown } from '../components/PriceBreakdown'
+import { TurnstileWidget } from '../../../components/TurnstileWidget'
 import type { BookingSelection, GuestDetails, PricingRuleRow } from '../types'
 import { formatPHP } from '../../../lib/constants'
 
@@ -8,8 +10,7 @@ interface Props {
   guest: GuestDetails
   pricing: PricingRuleRow[]
   onBack: () => void
-  // onBook is called by Phase 6 (PayMongo). For Phase 3 it's a stub.
-  onBook: () => void
+  onBook: (turnstileToken: string) => void
   isSubmitting?: boolean
 }
 
@@ -27,11 +28,18 @@ function formatTime(hhmm: string): string {
 }
 
 export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubmitting }: Props) {
+  const [turnstileToken, setTurnstileToken] = useState<string>('')
+
+  const handleVerify = useCallback((token: string) => setTurnstileToken(token), [])
+  const handleExpire = useCallback(() => setTurnstileToken(''), [])
+
   const rule = pricing.find(p => p.court_id === selection.courtId)
 
   if (!selection.date || !selection.startTime || !selection.endTime || !selection.courtName || !rule) {
     return null
   }
+
+  const canBook = !!turnstileToken && !isSubmitting
 
   return (
     <div className="space-y-6">
@@ -40,7 +48,7 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
         <p className="text-sm text-text-muted mt-1">Check everything before paying the deposit.</p>
       </div>
 
-      {/* Booking summary card */}
+      {/* Booking details */}
       <div className="rounded-xl border border-brand-border divide-y divide-brand-border">
         <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Court</span>
@@ -64,7 +72,7 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
         </div>
       </div>
 
-      {/* Guest details */}
+      {/* Guest info */}
       <div className="rounded-xl border border-brand-border divide-y divide-brand-border">
         <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Name</span>
@@ -89,9 +97,12 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
         />
       </div>
 
-      {/* Cancellation note */}
+      {/* Turnstile bot check */}
+      <TurnstileWidget onVerify={handleVerify} onExpire={handleExpire} />
+
+      {/* Cancellation policy note */}
       <p className="text-xs text-text-muted text-center">
-        Cancel 24+ hours before your session for a full deposit refund. &nbsp;
+        Cancel 24+ hours before your session for a full deposit refund.{' '}
         <a href="/cancellation-policy" className="underline hover:text-text-primary" target="_blank" rel="noopener noreferrer">
           Full policy →
         </a>
@@ -104,11 +115,12 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
         <Button
           variant="primary"
           size="lg"
-          onClick={onBook}
+          onClick={() => onBook(turnstileToken)}
           loading={isSubmitting}
+          disabled={!canBook}
           className="flex-1"
         >
-          Book & Pay {rule ? formatPHP(rule.deposit_amount) : ''} →
+          Book & Pay {formatPHP(rule.deposit_amount)} →
         </Button>
       </div>
     </div>

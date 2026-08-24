@@ -3,10 +3,16 @@
 // The DB exclusion constraint prevents double-booking at the database level.
 // Returns the booking reference and management token (token never stored raw).
 //
+// Security:
+//   - Cloudflare Turnstile server-side verification (bypassed in dev if key absent)
+//   - Rate limit: max 3 active holds/confirmed bookings per email in 24h
+//   - All validation is server-side; DB constraint is the last line of defense
+//
 // POST /functions/v1/create-hold
 // Body: {
 //   court_id, date, start_time, end_time,
-//   customer_name, customer_email, customer_phone
+//   customer_name, customer_email, customer_phone,
+//   turnstile_token
 // }
 // Response: { booking_reference, hold_expires_at, management_token }
 // Error:    { error: string, code: string }
@@ -32,7 +38,35 @@ Deno.serve(async (req) => {
     return json({ error: 'Invalid JSON body', code: 'INVALID_BODY' }, 400)
   }
 
-  const { court_id, date, start_time, end_time, customer_name, customer_email, customer_phone } = body
+  const {
+    court_id, date, start_time, end_time,
+    customer_name, customer_email, customer_phone,
+    turnstile_token,
+  } = body
+
+  // ── Cloudflare Turnstile verification ─────────────────────────────────────
+  const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY')
+  if (turnstileSecret) {
+    if (!turnstile_token) {
+      return json({ error: 'Bot protection token is required', code: 'TURNSTILE_MISSING' }, 422)
+    }
+    // Dev bypass sentinel from TurnstileWidget when no site key is set
+    if (turnstile_token !== '__dev_bypass__') {
+      const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: turnstileSecret,
+          response: turnstile_token,
+          remoteip: req.headers.get('cf-connecting-ip') ?? undefined,
+        }),
+      })
+      const tsData = await tsRes.json() as { success: boolean }
+      if (!tsData.success) {
+        return json({ error: 'Bot protection check failed. Please try again.', code: 'TURNSTILE_FAILED' }, 422)
+      }
+    }
+  }
 
   // ── Input validation ──────────────────────────────────────────────────────
   if (!court_id || !date || !start_time || !end_time || !customer_name || !customer_email || !customer_phone) {
@@ -74,6 +108,24 @@ Deno.serve(async (req) => {
   const maxDateStr = maxDate.toISOString().slice(0, 10)
   if (date > maxDateStr) {
     return json({ error: 'Date is outside the booking window', code: 'DATE_OUT_OF_WINDOW' }, 422)
+  }
+
+  // ── Rate limiting ─────────────────────────────────────────────────────────
+  // Max 3 active bookings per email per 24h to prevent bulk-holding abuse.
+  // ponytail: DB-based rate limit, no external service needed for V1.
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { count: activeCount } = await serviceClient
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('customer_email', customer_email.trim().toLowerCase())
+    .in('status', ['held', 'confirmed'])
+    .gte('created_at', since24h)
+
+  if ((activeCount ?? 0) >= 3) {
+    return json({
+      error: 'You have too many active bookings. Please contact us if you need assistance.',
+      code: 'RATE_LIMITED',
+    }, 429)
   }
 
   // ── Operating hours validation ────────────────────────────────────────────

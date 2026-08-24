@@ -65,7 +65,7 @@ export function BookingFlow() {
   //   2. (Phase 6) create PayMongo payment intent → redirect to PayMongo checkout
   //   3. (Phase 6) PayMongo webhook → confirm booking → send email (Phase 7)
   //   4. Redirect to /booking/{reference}?token={management_token}
-  async function handleBook() {
+  async function handleBook(turnstileToken: string) {
     const { selection, guest } = flow
     if (!selection.courtId || !selection.date || !selection.startTime || !selection.endTime) return
 
@@ -82,6 +82,7 @@ export function BookingFlow() {
           customer_name: guest.name.trim(),
           customer_email: guest.email.trim().toLowerCase(),
           customer_phone: guest.phone.trim(),
+          turnstile_token: turnstileToken,
         },
       })
 
