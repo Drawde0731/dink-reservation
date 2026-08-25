@@ -1,5 +1,11 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 import { Layout } from './layouts/Layout'
 import { AboutPage } from './pages/AboutPage'
 import { BookPage } from './pages/BookPage'
@@ -33,6 +39,7 @@ function AdminFallback() {
 export function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Public routes */}
         <Route element={<Layout />}>

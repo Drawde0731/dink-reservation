@@ -76,8 +76,8 @@ export function BookingFlow() {
     setFlow(f => ({ ...f, guest: { ...f.guest, ...partial } }))
   }
 
-  function next() { setFlow(f => ({ ...f, step: Math.min(4, f.step + 1) as BookingFlowState['step'] })) }
-  function back() { setFlow(f => ({ ...f, step: Math.max(1, f.step - 1) as BookingFlowState['step'] })) }
+  function next() { setFlow(f => ({ ...f, step: Math.min(4, f.step + 1) as BookingFlowState['step'] })); window.scrollTo(0, 0) }
+  function back() { setFlow(f => ({ ...f, step: Math.max(1, f.step - 1) as BookingFlowState['step'] })); window.scrollTo(0, 0) }
 
   // Creates holds for all selected slots in parallel, then one combined PayMongo checkout.
   async function handleBook(turnstileToken: string) {

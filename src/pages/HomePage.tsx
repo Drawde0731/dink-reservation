@@ -1,6 +1,7 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '../lib/cn'
+import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 
 // Button-styled link helper — keeps the homepage self-contained without
 // adding an `as` prop to the shared Button component (which has tests).
@@ -73,6 +74,21 @@ function ClockIcon() {
 }
 
 export function HomePage() {
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 1400)
+    return () => clearTimeout(t)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0d1a10]">
+        <p className="text-white text-xl font-black tracking-widest italic">Sip. Dink. Repeat.</p>
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-brand-cream">
 
@@ -132,7 +148,7 @@ export function HomePage() {
       </section>
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
-      <section className="bg-[#111] border-y border-white/5 -mt-4 relative z-10">
+      <section className="bg-[#111] border-y border-white/5 -mt-6 relative z-10">
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
             {[
