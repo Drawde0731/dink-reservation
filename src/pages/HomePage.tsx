@@ -77,83 +77,116 @@ export function HomePage() {
     <div className="bg-brand-cream">
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-brand-border">
+      <section className="relative overflow-hidden min-h-[92vh] flex flex-col justify-center">
         {/* Court photo */}
         <div
           className="absolute inset-0 bg-center bg-cover bg-no-repeat"
           style={{ backgroundImage: "url('/hero.avif')" }}
           aria-hidden="true"
         />
-        {/* Premium dark gradient — stronger at top/bottom, lighter in centre so photo shows */}
+        {/* Gradient: dark left + dark bottom, photo bleeds right */}
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%)' }}
+          style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.20) 100%), linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 40%)' }}
           aria-hidden="true"
         />
 
-        <div className="relative container mx-auto px-4 py-20 sm:py-28 lg:py-36 max-w-4xl text-center">
-          {/* Location pill */}
-          <div className="inline-flex items-center gap-2 text-white/90 font-medium text-sm mb-5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5">
-            <CourtIcon />
-            <span>Marilao, Bulacan</span>
-          </div>
+        <div className="relative container mx-auto px-6 py-24 sm:py-32 max-w-5xl">
+          {/* Pre-label */}
+          <p className="text-xs font-bold tracking-[0.22em] uppercase text-[#7ed4a0]/80 mb-5">
+            Pickleball Courts · Marilao, Bulacan
+          </p>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md">
+          {/* Main headline */}
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-white leading-[0.92] tracking-tight max-w-2xl">
             Your Court.
             <br />
             <span className="text-[#7ed4a0]">Your Game.</span>
           </h1>
 
-          <p className="mt-5 text-base sm:text-lg text-white/80 max-w-xl mx-auto leading-relaxed">
-            Reserve a pickleball court at Beanstalk Dink in Marilao, Bulacan.
-            Online booking in minutes — no account needed.
+          <p className="mt-7 text-base sm:text-lg text-white/70 max-w-md leading-relaxed">
+            Book a pickleball court online in minutes. No account needed —
+            just your name and a ₱100 deposit to secure your slot.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <LinkButton to="/book" variant="primary" size="lg" className="sm:px-8">
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <LinkButton to="/book" variant="primary" size="lg" className="!px-8 !text-base shadow-lg">
               Book a Court
             </LinkButton>
-            <LinkButton href="#schedule" variant="secondary" size="lg" className="!bg-white/10 !text-white border border-white/30 hover:!bg-white/20 backdrop-blur-sm">
-              View Schedule &amp; Pricing
+            <LinkButton
+              href="#schedule"
+              variant="secondary"
+              size="lg"
+              className="!bg-white/10 !text-white !border !border-white/30 hover:!bg-white/20"
+            >
+              See Pricing
             </LinkButton>
           </div>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-white/70">
+          <div className="mt-12 flex flex-wrap gap-x-7 gap-y-2 text-sm text-white/55">
             <span className="flex items-center gap-1.5"><CheckIcon /> No account required</span>
             <span className="flex items-center gap-1.5"><CheckIcon /> ₱100 deposit secures your slot</span>
-            <span className="flex items-center gap-1.5"><CheckIcon /> Instant confirmation by email</span>
+            <span className="flex items-center gap-1.5"><CheckIcon /> Instant confirmation</span>
+          </div>
+        </div>
+
+        {/* Scroll cue */}
+        <div className="absolute bottom-8 left-6 sm:left-1/2 sm:-translate-x-1/2 flex flex-col items-center gap-1.5" aria-hidden="true">
+          <div className="w-px h-10 bg-white/30" />
+          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Scroll</span>
+        </div>
+      </section>
+
+      {/* ── Stats strip ──────────────────────────────────────────────── */}
+      <section className="bg-[#111] border-y border-white/5">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
+            {[
+              { num: '2', label: 'Courts' },
+              { num: '₱500', label: 'Per hour' },
+              { num: '16 hrs', label: 'Open daily' },
+              { num: '₱100', label: 'To reserve' },
+            ].map(stat => (
+              <div key={stat.label} className="py-7 px-6 text-center">
+                <p className="text-2xl sm:text-3xl font-black text-white leading-none">{stat.num}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mt-2">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── How it Works ─────────────────────────────────────────────── */}
-      <section className="container mx-auto px-4 py-16 max-w-4xl">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-text-primary">Book in 3 minutes</h2>
-          <p className="text-text-muted mt-2">No account, no hassle — just your name, email, and phone.</p>
+      <section className="container mx-auto px-6 py-20 max-w-5xl">
+        <div className="mb-12">
+          <p className="text-xs font-bold tracking-[0.2em] uppercase text-brand-green-dark mb-2">How it works</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-text-primary">Book in 3 minutes</h2>
         </div>
 
-        <ol className="grid sm:grid-cols-3 gap-6">
+        <ol className="grid sm:grid-cols-3 gap-px bg-brand-border overflow-hidden rounded-2xl border border-brand-border">
           {[
             {
               n: '01',
               title: 'Pick a date & time',
-              body: 'Browse available slots and choose a time that works for you — up to 30 days ahead.',
+              body: 'Browse available slots — up to 30 days ahead. Select one hour or book multiple hours.',
             },
             {
               n: '02',
               title: 'Enter your details',
-              body: 'Your name, email address, and mobile number. That\'s the only information we need.',
+              body: 'Name, email, and mobile number. That\'s it — no account, no password.',
             },
             {
               n: '03',
-              title: 'Pay the ₱100 deposit',
-              body: 'Secure your slot with a ₱100 deposit via QR Ph / GCash. Pay the balance on court day.',
+              title: 'Pay the deposit',
+              body: 'Secure your slot with a ₱100/hr deposit via QR Ph or GCash. Settle the balance on court day.',
             },
           ].map(step => (
-            <li key={step.n} className="bg-white rounded-2xl border border-brand-border p-6 shadow-sm relative overflow-hidden">
-              <span className="absolute top-4 right-4 text-5xl font-black text-brand-surface select-none leading-none">{step.n}</span>
-              <h3 className="font-bold text-text-primary text-lg mb-2 relative">{step.title}</h3>
+            <li key={step.n} className="bg-white p-8 relative overflow-hidden">
+              <span className="absolute -bottom-3 -right-1 text-[7rem] font-black text-brand-surface select-none leading-none pointer-events-none">
+                {step.n}
+              </span>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-brand-green-dark mb-3">Step {step.n}</p>
+              <h3 className="font-black text-text-primary text-xl mb-3 leading-tight relative">{step.title}</h3>
               <p className="text-sm text-text-muted leading-relaxed relative">{step.body}</p>
             </li>
           ))}
@@ -161,58 +194,54 @@ export function HomePage() {
       </section>
 
       {/* ── Courts & Pricing ─────────────────────────────────────────── */}
-      <section id="schedule" className="bg-white border-y border-brand-border">
-        <div className="container mx-auto px-4 py-16 max-w-4xl">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-text-primary">Courts & Pricing</h2>
-            <p className="text-text-muted mt-2">Two dedicated pickleball courts — same rate for both.</p>
+      <section id="schedule" className="bg-brand-cream border-y border-brand-border">
+        <div className="container mx-auto px-6 py-20 max-w-5xl">
+          <div className="mb-12">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-brand-green-dark mb-2">The courts</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-text-primary">Two courts, same great rate</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-6 mb-8">
             {[
-              {
-                name: 'Court One',
-                description: 'Full-size pickleball court, suited for singles and doubles play.',
-              },
-              {
-                name: 'Court Two',
-                description: 'Full-size pickleball court, suited for singles and doubles play.',
-              },
+              { name: 'Court One', description: 'Full-size pickleball court. Singles and doubles. Good lighting.' },
+              { name: 'Court Two', description: 'Full-size pickleball court. Singles and doubles. Good lighting.' },
             ].map(court => (
-              <div key={court.name} className="rounded-2xl border border-brand-border bg-brand-cream p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-brand-surface border border-brand-border flex items-center justify-center text-brand-green-dark">
+              <div key={court.name} className="rounded-2xl border border-brand-border bg-white p-7 flex flex-col gap-5 group hover:border-brand-green-dark transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-text-primary">{court.name}</h3>
+                    <p className="text-sm text-text-muted mt-1">{court.description}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-brand-surface flex items-center justify-center text-brand-green-dark flex-shrink-0">
                     <CourtIcon />
                   </div>
+                </div>
+
+                <div className="border-t border-brand-border pt-5 flex items-end justify-between">
                   <div>
-                    <h3 className="font-bold text-text-primary">{court.name}</h3>
-                    <p className="text-xs text-text-muted">Beanstalk Dink</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-text-muted mb-0.5">Rate</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-text-primary">₱500</span>
+                      <span className="text-sm text-text-muted font-medium">/ hour</span>
+                    </div>
                   </div>
+                  <LinkButton to="/book" variant="primary" size="sm" className="!font-bold">
+                    Book now
+                  </LinkButton>
                 </div>
-
-                <p className="text-sm text-text-muted">{court.description}</p>
-
-                <div className="border-t border-brand-border pt-4 flex items-baseline gap-1">
-                  <span className="text-2xl font-extrabold text-text-primary">₱500</span>
-                  <span className="text-sm text-text-muted">/ hour</span>
-                </div>
-
-                <LinkButton to="/book" variant="primary" size="sm">
-                  Book this court
-                </LinkButton>
               </div>
             ))}
           </div>
 
           {/* Deposit callout */}
-          <div className="rounded-xl bg-brand-surface border border-brand-border p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-bold text-lg">
+          <div className="rounded-xl border-l-4 border-[#276749] bg-white border border-brand-border pl-6 pr-5 py-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#276749] flex items-center justify-center text-white font-black text-sm">
               ₱
             </div>
             <div>
-              <p className="font-semibold text-text-primary">₱100 reservation deposit required</p>
+              <p className="font-bold text-text-primary">₱100 per hour — paid online to reserve</p>
               <p className="text-sm text-text-muted mt-0.5">
-                The deposit is paid online to secure your slot. The remaining ₱400 balance is settled at the venue on the day of play.
+                Book 3 hours? That's ₱300 deposit now. The remaining court fee is settled at the venue on the day.
               </p>
             </div>
           </div>
@@ -220,7 +249,7 @@ export function HomePage() {
       </section>
 
       {/* ── Schedule & Location ───────────────────────────────────────── */}
-      <section className="container mx-auto px-4 py-16 max-w-4xl">
+      <section className="container mx-auto px-6 py-20 max-w-5xl">
         <div className="grid sm:grid-cols-2 gap-8">
 
           {/* Operating hours */}
@@ -302,15 +331,22 @@ export function HomePage() {
       </section>
 
       {/* ── Final CTA ────────────────────────────────────────────────── */}
-      <section className="bg-brand-green-dark text-white">
-        <div className="container mx-auto px-4 py-14 max-w-2xl text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to play?</h2>
-          <p className="text-brand-green-light mb-7 text-sm">
-            Pick your slot and reserve your court in under 3 minutes.
-          </p>
-          <LinkButton to="/book" variant="primary" size="lg" className="sm:px-10">
-            Book a Court Now
-          </LinkButton>
+      <section className="bg-[#111] text-white">
+        <div className="container mx-auto px-6 py-20 max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-8">
+          <div>
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-[#7ed4a0]/70 mb-3">Ready to play?</p>
+            <h2 className="text-3xl sm:text-4xl font-black leading-tight">
+              Your court is waiting.
+            </h2>
+            <p className="text-white/50 mt-2 text-sm">
+              Reserve online in 3 minutes — ₱100/hr deposit, no account needed.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <LinkButton to="/book" variant="primary" size="lg" className="!px-10 !text-base shadow-lg whitespace-nowrap">
+              Book a Court
+            </LinkButton>
+          </div>
         </div>
       </section>
 
