@@ -105,8 +105,7 @@ export function HomePage() {
           </h1>
 
           <p className="mt-7 text-base sm:text-lg text-white/70 max-w-md leading-relaxed">
-            Book a pickleball court online in minutes. No account needed —
-            just your name and a ₱100 deposit to secure your slot.
+            Book a pickleball court online in just minutes. No account required.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
