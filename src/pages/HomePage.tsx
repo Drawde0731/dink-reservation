@@ -91,7 +91,7 @@ export function HomePage() {
           aria-hidden="true"
         />
 
-        <div className="relative container mx-auto px-6 py-24 sm:py-32 max-w-5xl">
+        <div className="relative container mx-auto px-6 pt-14 pb-8 sm:pt-20 sm:pb-10 max-w-5xl">
           {/* Pre-label */}
           <p className="text-xs font-bold tracking-[0.22em] uppercase text-[#7ed4a0]/80 mb-5">
             Beanstalk Dink · Marilao, Bulacan
@@ -123,7 +123,7 @@ export function HomePage() {
             </LinkButton>
           </div>
 
-          <div className="mt-12 flex flex-wrap gap-x-7 gap-y-2 text-sm text-white/55">
+          <div className="mt-6 flex flex-wrap gap-x-7 gap-y-2 text-sm text-white/55">
             <span className="flex items-center gap-1.5"><CheckIcon /> No account required</span>
             <span className="flex items-center gap-1.5"><CheckIcon /> ₱100 deposit secures your slot</span>
             <span className="flex items-center gap-1.5"><CheckIcon /> Instant confirmation</span>
@@ -142,7 +142,7 @@ export function HomePage() {
               { num: '16 hrs', label: 'Open daily' },
               { num: '₱100', label: 'To reserve' },
             ].map(stat => (
-              <div key={stat.label} className="py-7 px-6 text-center">
+              <div key={stat.label} className="py-4 px-6 text-center">
                 <p className="text-2xl sm:text-3xl font-black text-white leading-none">{stat.num}</p>
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mt-2">{stat.label}</p>
               </div>
