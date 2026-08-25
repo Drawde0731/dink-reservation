@@ -33,23 +33,43 @@ export function BookingFlow() {
     setFlow(f => ({ ...f, date, selections: [] }))  // clear selections when date changes
   }
 
-  // Toggle a slot for a court: deselect if same slot clicked again, replace if different slot, add if new court
+  // Toggle an individual hour slot. Multiple slots per court are allowed.
   function toggleSlot(courtId: string, courtName: string, startTime: string, endTime: string) {
     setFlow(f => {
-      const existing = f.selections.find(s => s.courtId === courtId)
-      if (existing?.startTime === startTime) {
-        // Same slot clicked → deselect
-        return { ...f, selections: f.selections.filter(s => s.courtId !== courtId) }
+      const already = f.selections.findIndex(s => s.courtId === courtId && s.startTime === startTime)
+      if (already !== -1) {
+        return { ...f, selections: f.selections.filter((_, i) => i !== already) }
       }
       const slotMin = data?.settings?.slot_duration_minutes ?? 60
-      const newSel: SlotSelection = { courtId, courtName, startTime, endTime, durationMinutes: slotMin }
-      if (existing) {
-        // Different slot for same court → replace
-        return { ...f, selections: f.selections.map(s => s.courtId === courtId ? newSel : s) }
-      }
-      // New court → add
-      return { ...f, selections: [...f.selections, newSel] }
+      return { ...f, selections: [...f.selections, { courtId, courtName, startTime, endTime, durationMinutes: slotMin }] }
     })
+  }
+
+  // Merge consecutive hour-slots per court into a single SlotSelection for submission.
+  // Non-consecutive gaps on the same court produce separate entries (multiple holds).
+  function mergeSelections(raw: SlotSelection[]): SlotSelection[] {
+    const grouped = new Map<string, SlotSelection[]>()
+    for (const s of raw) {
+      const arr = grouped.get(s.courtId) ?? []
+      arr.push(s)
+      grouped.set(s.courtId, arr)
+    }
+    const merged: SlotSelection[] = []
+    for (const slots of grouped.values()) {
+      slots.sort((a, b) => a.startTime.localeCompare(b.startTime))
+      let cur = { ...slots[0] }
+      for (let i = 1; i < slots.length; i++) {
+        if (slots[i].startTime === cur.endTime) {
+          cur.endTime = slots[i].endTime
+          cur.durationMinutes += slots[i].durationMinutes
+        } else {
+          merged.push(cur)
+          cur = { ...slots[i] }
+        }
+      }
+      merged.push(cur)
+    }
+    return merged
   }
 
   function updateGuest(partial: Partial<BookingFlowState['guest']>) {
@@ -59,9 +79,10 @@ export function BookingFlow() {
   function next() { setFlow(f => ({ ...f, step: Math.min(4, f.step + 1) as BookingFlowState['step'] })) }
   function back() { setFlow(f => ({ ...f, step: Math.max(1, f.step - 1) as BookingFlowState['step'] })) }
 
-  // Creates holds for all selected courts in parallel, then one combined PayMongo checkout.
+  // Creates holds for all selected slots in parallel, then one combined PayMongo checkout.
   async function handleBook(turnstileToken: string) {
-    const { date, selections, guest } = flow
+    const { date, guest } = flow
+    const selections = mergeSelections(flow.selections)
     if (!date || selections.length === 0) return
 
     setIsSubmitting(true)
@@ -100,7 +121,7 @@ export function BookingFlow() {
             : result.error
           setHoldError({ code: result.code ?? 'UNKNOWN', message: msg })
           if (result.code === 'SLOT_TAKEN') {
-            // Remove the taken slot so user picks again
+            // Remove all raw slots for that court so user picks again
             setFlow(f => ({ ...f, step: 2, selections: f.selections.filter(s => s.courtId !== sel.courtId) }))
           }
           return
@@ -208,7 +229,7 @@ export function BookingFlow() {
         {flow.step === 4 && (
           <Step4Summary
             date={flow.date}
-            selections={flow.selections}
+            selections={mergeSelections(flow.selections)}
             guest={flow.guest}
             pricing={data.pricing}
             onBack={back}

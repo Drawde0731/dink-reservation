@@ -148,7 +148,8 @@ Deno.serve(async (req) => {
   const startMin = parseMinutes(start_time)
   const endMin = end_time === '00:00' ? 24 * 60 : parseMinutes(end_time)
 
-  if (startMin < openMin || endMin > closeMin || endMin - startMin !== slotMin) {
+  const durationMin = endMin - startMin
+  if (startMin < openMin || endMin > closeMin || durationMin <= 0 || durationMin % slotMin !== 0) {
     return json({ error: 'Invalid time slot', code: 'INVALID_SLOT' }, 422)
   }
 
@@ -198,7 +199,7 @@ Deno.serve(async (req) => {
     booking_date: date,
     start_time,
     end_time,
-    duration_minutes: slotMin,
+    duration_minutes: durationMin,
     start_at: startUTC.toISOString(),
     end_at: endUTC.toISOString(),
     status: 'held',

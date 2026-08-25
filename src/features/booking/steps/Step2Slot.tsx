@@ -21,14 +21,23 @@ function formatDisplayDate(dateStr: string): string {
   })
 }
 
+// Group raw individual slots by court and compute per-court summary
+function groupByCourt(selections: SlotSelection[], pricing: PricingRuleRow[]) {
+  const map = new Map<string, { courtName: string; slots: SlotSelection[]; rule?: PricingRuleRow }>()
+  for (const s of selections) {
+    const entry = map.get(s.courtId) ?? { courtName: s.courtName, slots: [], rule: pricing.find(p => p.court_id === s.courtId) }
+    entry.slots.push(s)
+    map.set(s.courtId, entry)
+  }
+  return [...map.values()]
+}
+
 export function Step2Slot({ date, selections, courts, pricing, onToggleSlot, onNext, onBack }: Props) {
   const canContinue = selections.length > 0
+  const grouped = groupByCourt(selections, pricing)
 
-  // Total deposit across all selected slots
-  const totalDeposit = selections.reduce((sum, sel) => {
-    const rule = pricing.find(p => p.court_id === sel.courtId)
-    return sum + (rule?.deposit_amount ?? 10000)
-  }, 0)
+  // Deposit is per court (flat ₱100), not per hour
+  const totalDeposit = grouped.reduce((sum, g) => sum + (g.rule?.deposit_amount ?? 10000), 0)
 
   return (
     <div className="space-y-6">
@@ -38,7 +47,8 @@ export function Step2Slot({ date, selections, courts, pricing, onToggleSlot, onN
           <p className="text-sm text-text-muted mt-1">{formatDisplayDate(date)}</p>
         )}
         <p className="text-xs text-text-muted mt-0.5">
-          You can book both courts at the same time — tap a slot on each court.
+          Tap multiple slots to book multiple hours (e.g. 3 PM, 4 PM, 5 PM = 3-hour block).
+          You can also book both courts at the same time.
         </p>
       </div>
 
@@ -53,21 +63,21 @@ export function Step2Slot({ date, selections, courts, pricing, onToggleSlot, onN
         />
       ))}
 
-      {selections.length > 0 && (
+      {grouped.length > 0 && (
         <div className="rounded-xl bg-[#F2FAF5] border border-[#D4E8DB] px-4 py-3 text-sm">
           <p className="font-semibold text-[#276749]">
-            {selections.length === 1 ? '1 court selected' : `${selections.length} courts selected`}
+            {grouped.map(g => `${g.courtName}: ${g.slots.length} ${g.slots.length === 1 ? 'hr' : 'hrs'}`).join(' · ')}
           </p>
-          {selections.map(s => {
-            const rule = pricing.find(p => p.court_id === s.courtId)
+          {grouped.map(g => {
+            const hrs = g.slots.length
+            const fee = g.rule ? g.rule.price_per_hour * hrs : 0
             return (
-              <p key={s.courtId} className="text-text-muted mt-0.5">
-                {s.courtName} · {s.startTime} – {s.endTime}
-                {rule ? ` · ${formatPHP(rule.deposit_amount)} deposit` : ''}
+              <p key={g.courtName} className="text-text-muted mt-0.5">
+                {g.courtName} · {formatPHP(fee)} court fee · {formatPHP(g.rule?.deposit_amount ?? 10000)} deposit
               </p>
             )
           })}
-          {selections.length > 1 && (
+          {grouped.length > 1 && (
             <p className="mt-1 font-medium text-text-primary">
               Total deposit: {formatPHP(totalDeposit)}
             </p>

@@ -16,7 +16,8 @@ export function CourtSlotSection({ court, date, pricing, selections, onToggleSlo
   const { slots, loading, error } = useCourtAvailability({ date, courtId: court.id })
 
   const rule = pricing.find(p => p.court_id === court.id)
-  const courtSelection = selections.find(s => s.courtId === court.id)
+  const courtSlots = selections.filter(s => s.courtId === court.id)
+  const hoursSelected = courtSlots.length  // each raw slot = 1 hr (slot_duration_minutes = 60)
 
   return (
     <div className="rounded-xl border border-brand-border overflow-hidden">
@@ -28,9 +29,9 @@ export function CourtSlotSection({ court, date, pricing, selections, onToggleSlo
             <p className="text-xs text-text-muted">{formatPHP(rule.price_per_hour)} / hour</p>
           )}
         </div>
-        {courtSelection && (
+        {hoursSelected > 0 && (
           <span className="text-xs font-medium text-[#276749] bg-[#D4E8DB] px-2 py-0.5 rounded-full">
-            {courtSelection.startTime} – {courtSelection.endTime}
+            {hoursSelected} {hoursSelected === 1 ? 'hr' : 'hrs'} selected
           </span>
         )}
       </div>
@@ -61,7 +62,7 @@ export function CourtSlotSection({ court, date, pricing, selections, onToggleSlo
                 startTime={slot.startTime}
                 endTime={slot.endTime}
                 isAvailable={slot.isAvailable}
-                isSelected={courtSelection?.startTime === slot.startTime}
+                isSelected={courtSlots.some(s => s.startTime === slot.startTime)}
                 onSelect={() => onToggleSlot(court.id, court.name, slot.startTime, slot.endTime)}
               />
             ))}
