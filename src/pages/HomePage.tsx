@@ -91,7 +91,7 @@ export function HomePage() {
           aria-hidden="true"
         />
 
-        <div className="relative container mx-auto px-6 pt-14 pb-8 sm:pt-20 sm:pb-10 max-w-5xl">
+        <div className="relative container mx-auto px-6 pb-6 sm:pt-10 sm:pb-10 max-w-5xl">
           {/* Pre-label */}
           <p className="text-xs font-bold tracking-[0.22em] uppercase text-[#7ed4a0]/80 mb-5">
             Beanstalk Dink · Marilao, Bulacan
@@ -132,7 +132,7 @@ export function HomePage() {
       </section>
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
-      <section className="bg-[#111] border-y border-white/5">
+      <section className="bg-[#111] border-y border-white/5 -mt-4 relative z-10">
         <div className="container mx-auto px-6 max-w-5xl">
           <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/10">
             {[
