@@ -94,7 +94,7 @@ export function HomePage() {
         <div className="relative container mx-auto px-6 py-24 sm:py-32 max-w-5xl">
           {/* Pre-label */}
           <p className="text-xs font-bold tracking-[0.22em] uppercase text-[#7ed4a0]/80 mb-5">
-            Pickleball Courts · Marilao, Bulacan
+            Beanstalk Dink · Marilao, Bulacan
           </p>
 
           {/* Main headline */}
@@ -130,11 +130,6 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Scroll cue */}
-        <div className="absolute bottom-8 left-6 sm:left-1/2 sm:-translate-x-1/2 flex flex-col items-center gap-1.5" aria-hidden="true">
-          <div className="w-px h-10 bg-white/30" />
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Scroll</span>
-        </div>
       </section>
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
