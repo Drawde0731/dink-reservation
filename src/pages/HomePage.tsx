@@ -78,25 +78,33 @@ export function HomePage() {
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-brand-border">
-        <div className="absolute inset-0 bg-brand-surface opacity-60 pointer-events-none" />
+        {/* Court photo */}
+        <div
+          className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+          style={{ backgroundImage: "url('/hero.avif')" }}
+          aria-hidden="true"
+        />
+        {/* Premium dark gradient — stronger at top/bottom, lighter in centre so photo shows */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%)' }}
+          aria-hidden="true"
+        />
 
-        {/* Decorative pattern — subtle, not distracting */}
-        <div className="absolute inset-0 pointer-events-none opacity-10"
-          style={{ backgroundImage: 'repeating-linear-gradient(45deg, #276749 0, #276749 1px, transparent 0, transparent 50%)', backgroundSize: '24px 24px' }} />
-
-        <div className="relative container mx-auto px-4 py-20 sm:py-28 max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 text-brand-green-dark font-medium text-sm mb-5 bg-white border border-brand-border rounded-full px-4 py-1.5 shadow-sm">
+        <div className="relative container mx-auto px-4 py-20 sm:py-28 lg:py-36 max-w-4xl text-center">
+          {/* Location pill */}
+          <div className="inline-flex items-center gap-2 text-white/90 font-medium text-sm mb-5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5">
             <CourtIcon />
             <span>Marilao, Bulacan</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-text-primary tracking-tight leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md">
             Your Court.
             <br />
-            <span className="text-brand-green-dark">Your Game.</span>
+            <span className="text-[#7ed4a0]">Your Game.</span>
           </h1>
 
-          <p className="mt-5 text-lg text-text-muted max-w-xl mx-auto leading-relaxed">
+          <p className="mt-5 text-base sm:text-lg text-white/80 max-w-xl mx-auto leading-relaxed">
             Reserve a pickleball court at Beanstalk Dink in Marilao, Bulacan.
             Online booking in minutes — no account needed.
           </p>
@@ -105,12 +113,12 @@ export function HomePage() {
             <LinkButton to="/book" variant="primary" size="lg" className="sm:px-8">
               Book a Court
             </LinkButton>
-            <LinkButton href="#schedule" variant="secondary" size="lg">
-              View Schedule & Pricing
+            <LinkButton href="#schedule" variant="secondary" size="lg" className="!bg-white/10 !text-white border border-white/30 hover:!bg-white/20 backdrop-blur-sm">
+              View Schedule &amp; Pricing
             </LinkButton>
           </div>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-text-muted">
+          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-white/70">
             <span className="flex items-center gap-1.5"><CheckIcon /> No account required</span>
             <span className="flex items-center gap-1.5"><CheckIcon /> ₱100 deposit secures your slot</span>
             <span className="flex items-center gap-1.5"><CheckIcon /> Instant confirmation by email</span>
