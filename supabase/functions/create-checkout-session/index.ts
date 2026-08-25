@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       .select(`
         id, booking_reference, status, management_token_hash,
         customer_name, customer_email, hold_expires_at,
-        booking_date, start_time, end_time, court_id,
+        booking_date, start_time, end_time, duration_minutes, court_id,
         courts ( name )
       `)
       .eq('booking_reference', ref)
@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .single()
 
-    const deposit = pricing?.deposit_amount ?? 10000
+    const hours = (booking.duration_minutes ?? 60) / 60
+    const deposit = (pricing?.deposit_amount ?? 10000) * hours
     totalDeposit += deposit
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

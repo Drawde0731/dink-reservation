@@ -41,8 +41,9 @@ export function Step4Summary({ date, selections, guest, pricing, onBack, onBook,
   // Per-selection price breakdown
   const rows = selections.map(sel => {
     const rule = pricing.find(p => p.court_id === sel.courtId)
-    const total = rule ? rule.price_per_hour * (sel.durationMinutes / 60) : 0
-    const deposit = rule?.deposit_amount ?? 10000
+    const hours = sel.durationMinutes / 60
+    const total = rule ? rule.price_per_hour * hours : 0
+    const deposit = rule ? rule.deposit_amount * hours : 10000 * hours
     const balance = total - deposit
     return { sel, rule, total, deposit, balance }
   })

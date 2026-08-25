@@ -36,8 +36,8 @@ export function Step2Slot({ date, selections, courts, pricing, onToggleSlot, onN
   const canContinue = selections.length > 0
   const grouped = groupByCourt(selections, pricing)
 
-  // Deposit is per court (flat ₱100), not per hour
-  const totalDeposit = grouped.reduce((sum, g) => sum + (g.rule?.deposit_amount ?? 10000), 0)
+  // Deposit is ₱100 per hour per court
+  const totalDeposit = grouped.reduce((sum, g) => sum + (g.rule ? g.rule.deposit_amount * g.slots.length : 10000 * g.slots.length), 0)
 
   return (
     <div className="space-y-6">
@@ -73,7 +73,7 @@ export function Step2Slot({ date, selections, courts, pricing, onToggleSlot, onN
             const fee = g.rule ? g.rule.price_per_hour * hrs : 0
             return (
               <p key={g.courtName} className="text-text-muted mt-0.5">
-                {g.courtName} · {formatPHP(fee)} court fee · {formatPHP(g.rule?.deposit_amount ?? 10000)} deposit
+                {g.courtName} · {formatPHP(fee)} court fee · {formatPHP(g.rule ? g.rule.deposit_amount * hrs : 10000 * hrs)} deposit
               </p>
             )
           })}
