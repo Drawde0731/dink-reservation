@@ -271,7 +271,7 @@ export function HomePage() {
                   <path d="M2 8h11" strokeLinecap="round" />
                   <path d="M9 5l4 3-4 3" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Open in Google Maps →
+                Open in Google Maps
               </a>
             </div>
 
@@ -286,7 +286,7 @@ export function HomePage() {
                 to="/cancellation-policy"
                 className="text-sm text-brand-green-dark underline mt-2 inline-block hover:opacity-80"
               >
-                Read full policy →
+                Read full policy
               </Link>
             </div>
           </div>

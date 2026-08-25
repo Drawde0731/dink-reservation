@@ -110,9 +110,9 @@ export function AdminDashboardPage() {
           <p className="text-sm text-text-muted">{fmtDate(date)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setDate(d => addDays(d, -1))}>← Prev</Button>
+          <Button variant="ghost" size="sm" onClick={() => setDate(d => addDays(d, -1))}>Prev</Button>
           <Button variant="ghost" size="sm" onClick={() => setDate(todayManila())}>Today</Button>
-          <Button variant="ghost" size="sm" onClick={() => setDate(d => addDays(d, 1))}>Next →</Button>
+          <Button variant="ghost" size="sm" onClick={() => setDate(d => addDays(d, 1))}>Next</Button>
         </div>
       </div>
 

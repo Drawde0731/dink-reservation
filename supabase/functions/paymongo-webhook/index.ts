@@ -62,102 +62,84 @@ Deno.serve(async (req) => {
   const metadata = (sessionData?.metadata ?? {}) as Record<string, string>
   const checkoutSessionId = (event.data as Record<string, unknown>)?.id as string | undefined
 
-  const bookingId = metadata.booking_id
-  if (!bookingId) {
-    console.error('paymongo-webhook: no booking_id in metadata', metadata)
+  // Support multi-booking: booking_ids is JSON array; fallback to legacy booking_id
+  const bookingIds: string[] = metadata.booking_ids
+    ? JSON.parse(metadata.booking_ids)
+    : metadata.booking_id ? [metadata.booking_id] : []
+
+  if (bookingIds.length === 0) {
+    console.error('paymongo-webhook: no booking_id(s) in metadata', metadata)
     return json({ error: 'No booking_id in metadata' }, 400)
   }
 
-  // Fetch booking to verify current status
-  const { data: booking, error: bookingErr } = await serviceClient
-    .from('bookings')
-    .select('id, status, booking_reference, customer_email, customer_name, venue_id')
-    .eq('id', bookingId)
-    .single()
+  // Process all bookings (parallel for multi-court)
+  const now = new Date().toISOString()
 
-  if (bookingErr || !booking) {
-    console.error('paymongo-webhook: booking not found', bookingId)
-    return json({ error: 'Booking not found' }, 404)
-  }
+  for (const bookingId of bookingIds) {
+    const { data: booking, error: bookingErr } = await serviceClient
+      .from('bookings')
+      .select('id, status, booking_reference, customer_email, start_at')
+      .eq('id', bookingId)
+      .single()
 
-  // Idempotency: ignore if already confirmed
-  if (booking.status === 'confirmed') {
-    return json({ received: true, handled: false, reason: 'already_confirmed' })
-  }
-  if (!['held', 'pending'].includes(booking.status)) {
-    console.warn('paymongo-webhook: unexpected booking status', booking.status)
-    return json({ received: true, handled: false, reason: `unexpected_status:${booking.status}` })
-  }
+    if (bookingErr || !booking) {
+      console.error('paymongo-webhook: booking not found', bookingId)
+      continue  // don't fail the whole webhook for one bad ID
+    }
 
-  // Confirm the booking
-  const { error: updateErr } = await serviceClient
-    .from('bookings')
-    .update({ status: 'confirmed' })
-    .eq('id', bookingId)
+    // Idempotent: skip if already confirmed
+    if (booking.status === 'confirmed') continue
+    if (!['held', 'pending'].includes(booking.status)) {
+      console.warn('paymongo-webhook: unexpected status for', bookingId, booking.status)
+      continue
+    }
 
-  if (updateErr) {
-    console.error('paymongo-webhook: failed to confirm booking', updateErr)
-    return json({ error: 'Failed to update booking' }, 500)
-  }
+    // Confirm
+    await serviceClient.from('bookings').update({ status: 'confirmed' }).eq('id', bookingId)
 
-  // Mark payment as paid
-  if (checkoutSessionId) {
-    await serviceClient
-      .from('payments')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('provider_payment_id', checkoutSessionId)
-  }
+    // Activate confirmation notification (created by create-hold with far-future scheduled_at)
+    const { error: notifErr } = await serviceClient
+      .from('notifications')
+      .update({ scheduled_at: now })
+      .eq('booking_id', bookingId).eq('type', 'confirmation').eq('status', 'pending')
 
-  // Activate the confirmation notification created by create-hold
-  // (move its scheduled_at from far-future to now so send-notifications picks it up)
-  const { error: notifUpdateErr } = await serviceClient
-    .from('notifications')
-    .update({ scheduled_at: new Date().toISOString() })
-    .eq('booking_id', bookingId)
-    .eq('type', 'confirmation')
-    .eq('status', 'pending')
+    if (notifErr) {
+      await serviceClient.from('notifications').insert({
+        booking_id: bookingId, type: 'confirmation',
+        recipient_email: booking.customer_email,
+        scheduled_at: now, status: 'pending',
+      })
+    }
 
-  if (notifUpdateErr) {
-    // Fallback: insert a new confirmation notification (without manage link token)
-    console.warn('paymongo-webhook: could not activate existing notification, inserting fallback')
-    await serviceClient.from('notifications').insert({
-      booking_id: bookingId,
-      type: 'confirmation',
-      recipient_email: booking.customer_email,
-      scheduled_at: new Date().toISOString(),
-      status: 'pending',
+    // Schedule 24h reminder
+    if (booking.start_at) {
+      const reminderAt = new Date(new Date(booking.start_at).getTime() - 24 * 60 * 60 * 1000)
+      if (reminderAt > new Date()) {
+        await serviceClient.from('notifications').insert({
+          booking_id: bookingId, type: 'reminder',
+          recipient_email: booking.customer_email,
+          scheduled_at: reminderAt.toISOString(), status: 'pending',
+        })
+      }
+    }
+
+    // Audit log per booking
+    await serviceClient.from('audit_logs').insert({
+      actor_email: 'paymongo-webhook',
+      action: 'booking.confirmed',
+      entity_type: 'booking',
+      entity_id: bookingId,
+      metadata: { booking_reference: booking.booking_reference, checkout_session_id: checkoutSessionId },
     })
   }
 
-  // Schedule 24h reminder notification
-  // Look up booking start_at to compute reminder time
-  const { data: bookingTime } = await serviceClient
-    .from('bookings').select('start_at').eq('id', bookingId).single()
-
-  if (bookingTime?.start_at) {
-    const reminderAt = new Date(new Date(bookingTime.start_at).getTime() - 24 * 60 * 60 * 1000)
-    if (reminderAt > new Date()) {
-      await serviceClient.from('notifications').insert({
-        booking_id: bookingId,
-        type: 'reminder',
-        recipient_email: booking.customer_email,
-        scheduled_at: reminderAt.toISOString(),
-        status: 'pending',
-      })
-    }
+  // Mark all payments for this checkout session as paid
+  if (checkoutSessionId) {
+    await serviceClient
+      .from('payments')
+      .update({ status: 'paid', paid_at: now })
+      .eq('provider_payment_id', checkoutSessionId)
   }
-
-  // Audit log
-  await serviceClient.from('audit_logs').insert({
-    actor_email: 'paymongo-webhook',
-    action: 'booking.confirmed',
-    entity_type: 'booking',
-    entity_id: bookingId,
-    metadata: {
-      booking_reference: booking.booking_reference,
-      checkout_session_id: checkoutSessionId,
-    },
-  })
 
   return json({ received: true, handled: true })
 })

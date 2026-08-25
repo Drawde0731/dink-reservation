@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react'
 import { Button } from '../../../components/ui/Button'
-import { PriceBreakdown } from '../components/PriceBreakdown'
 import { TurnstileWidget } from '../../../components/TurnstileWidget'
-import type { BookingSelection, GuestDetails, PricingRuleRow } from '../types'
+import type { SlotSelection, GuestDetails, PricingRuleRow } from '../types'
 import { formatPHP } from '../../../lib/constants'
 
 interface Props {
-  selection: BookingSelection
+  date: string | null
+  selections: SlotSelection[]
   guest: GuestDetails
   pricing: PricingRuleRow[]
   onBack: () => void
@@ -16,8 +16,9 @@ interface Props {
 
 function formatDisplayDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(y, m - 1, d)
-  return dt.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  return new Date(y, m - 1, d).toLocaleDateString('en-PH', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  })
 }
 
 function formatTime(hhmm: string): string {
@@ -27,19 +28,27 @@ function formatTime(hhmm: string): string {
   return `${hour}:${String(m).padStart(2, '0')} ${period}`
 }
 
-export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubmitting }: Props) {
+export function Step4Summary({ date, selections, guest, pricing, onBack, onBook, isSubmitting }: Props) {
   const [turnstileToken, setTurnstileToken] = useState<string>('')
 
   const handleVerify = useCallback((token: string) => setTurnstileToken(token), [])
   const handleExpire = useCallback(() => setTurnstileToken(''), [])
 
-  const rule = pricing.find(p => p.court_id === selection.courtId)
-
-  if (!selection.date || !selection.startTime || !selection.endTime || !selection.courtName || !rule) {
-    return null
-  }
+  if (!date || selections.length === 0) return null
 
   const canBook = !!turnstileToken && !isSubmitting
+
+  // Per-selection price breakdown
+  const rows = selections.map(sel => {
+    const rule = pricing.find(p => p.court_id === sel.courtId)
+    const total = rule ? rule.price_per_hour * (sel.durationMinutes / 60) : 0
+    const deposit = rule?.deposit_amount ?? 10000
+    const balance = total - deposit
+    return { sel, rule, total, deposit, balance }
+  })
+
+  const totalDeposit = rows.reduce((s, r) => s + r.deposit, 0)
+  const totalBalance = rows.reduce((s, r) => s + r.balance, 0)
 
   return (
     <div className="space-y-6">
@@ -48,53 +57,79 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
         <p className="text-sm text-text-muted mt-1">Check everything before paying the deposit.</p>
       </div>
 
-      {/* Booking details */}
+      {/* Date */}
       <div className="rounded-xl border border-brand-border divide-y divide-brand-border">
         <div className="px-4 py-3 flex justify-between items-start">
-          <span className="text-sm text-text-muted">Court</span>
-          <span className="text-sm font-semibold text-text-primary text-right">{selection.courtName}</span>
-        </div>
-        <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Date</span>
-          <span className="text-sm font-medium text-text-primary text-right">{formatDisplayDate(selection.date)}</span>
-        </div>
-        <div className="px-4 py-3 flex justify-between items-start">
-          <span className="text-sm text-text-muted">Time</span>
-          <span className="text-sm font-medium text-text-primary text-right">
-            {formatTime(selection.startTime)} – {formatTime(selection.endTime)}
-          </span>
-        </div>
-        <div className="px-4 py-3 flex justify-between items-start">
-          <span className="text-sm text-text-muted">Duration</span>
-          <span className="text-sm font-medium text-text-primary text-right">
-            {selection.durationMinutes / 60} {selection.durationMinutes === 60 ? 'hour' : 'hours'}
-          </span>
+          <span className="text-sm font-medium text-text-primary text-right">{formatDisplayDate(date)}</span>
         </div>
       </div>
+
+      {/* Per-court breakdown */}
+      {rows.map(({ sel, rule, total, deposit, balance }) => (
+        <div key={sel.courtId} className="rounded-xl border border-brand-border divide-y divide-brand-border">
+          <div className="px-4 py-2.5 bg-brand-surface">
+            <span className="text-sm font-semibold text-text-primary">{sel.courtName}</span>
+          </div>
+          <div className="px-4 py-3 flex justify-between items-start">
+            <span className="text-sm text-text-muted">Time</span>
+            <span className="text-sm font-medium text-text-primary">
+              {formatTime(sel.startTime)} – {formatTime(sel.endTime)}
+            </span>
+          </div>
+          <div className="px-4 py-3 flex justify-between items-start">
+            <span className="text-sm text-text-muted">Duration</span>
+            <span className="text-sm font-medium text-text-primary">
+              {sel.durationMinutes / 60} {sel.durationMinutes === 60 ? 'hour' : 'hours'}
+            </span>
+          </div>
+          {rule && (
+            <>
+              <div className="px-4 py-3 flex justify-between items-start">
+                <span className="text-sm text-text-muted">Court fee</span>
+                <span className="text-sm font-medium text-text-primary">{formatPHP(total)}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between items-start">
+                <span className="text-sm text-text-muted">Deposit (online)</span>
+                <span className="text-sm font-semibold text-[#276749]">{formatPHP(deposit)}</span>
+              </div>
+              <div className="px-4 py-3 flex justify-between items-start">
+                <span className="text-sm text-text-muted">Balance at venue</span>
+                <span className="text-sm font-semibold text-[#E76F51]">{formatPHP(balance)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+
+      {/* Combined total when booking multiple courts */}
+      {rows.length > 1 && (
+        <div className="rounded-xl border border-[#276749] bg-[#F2FAF5] divide-y divide-[#D4E8DB]">
+          <div className="px-4 py-3 flex justify-between items-center">
+            <span className="text-sm font-bold text-[#276749]">Total deposit to pay now</span>
+            <span className="text-base font-bold text-[#276749]">{formatPHP(totalDeposit)}</span>
+          </div>
+          <div className="px-4 py-3 flex justify-between items-center">
+            <span className="text-sm text-text-muted">Total balance at venue</span>
+            <span className="text-sm font-semibold text-[#E76F51]">{formatPHP(totalBalance)}</span>
+          </div>
+        </div>
+      )}
 
       {/* Guest info */}
       <div className="rounded-xl border border-brand-border divide-y divide-brand-border">
         <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Name</span>
-          <span className="text-sm font-medium text-text-primary text-right">{guest.name}</span>
+          <span className="text-sm font-medium text-text-primary">{guest.name}</span>
         </div>
         <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Email</span>
-          <span className="text-sm font-medium text-text-primary text-right break-all">{guest.email}</span>
+          <span className="text-sm font-medium text-text-primary break-all">{guest.email}</span>
         </div>
         <div className="px-4 py-3 flex justify-between items-start">
           <span className="text-sm text-text-muted">Mobile</span>
-          <span className="text-sm font-medium text-text-primary text-right">{guest.phone}</span>
+          <span className="text-sm font-medium text-text-primary">{guest.phone}</span>
         </div>
-      </div>
-
-      {/* Price breakdown */}
-      <div className="rounded-xl border border-brand-border p-4">
-        <PriceBreakdown
-          pricePerHour={rule.price_per_hour}
-          depositAmount={rule.deposit_amount}
-          durationMinutes={selection.durationMinutes}
-        />
       </div>
 
       {/* Turnstile bot check */}
@@ -104,13 +139,13 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
       <p className="text-xs text-text-muted text-center">
         Cancel 24+ hours before your session for a full deposit refund.{' '}
         <a href="/cancellation-policy" className="underline hover:text-text-primary" target="_blank" rel="noopener noreferrer">
-          Full policy →
+          Full policy
         </a>
       </p>
 
       <div className="flex gap-3">
         <Button variant="secondary" size="lg" onClick={onBack} className="flex-1" disabled={isSubmitting}>
-          ← Back
+          Back
         </Button>
         <Button
           variant="primary"
@@ -120,7 +155,7 @@ export function Step4Summary({ selection, guest, pricing, onBack, onBook, isSubm
           disabled={!canBook}
           className="flex-1"
         >
-          Book & Pay {formatPHP(rule.deposit_amount)} →
+          Book &amp; Pay {formatPHP(totalDeposit)}
         </Button>
       </div>
     </div>

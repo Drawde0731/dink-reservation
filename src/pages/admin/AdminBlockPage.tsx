@@ -161,7 +161,7 @@ export function AdminBlockPage() {
         <div key={b.id} className="mb-2 flex items-start justify-between rounded-xl border border-brand-border bg-white p-4">
           <div>
             <p className="font-semibold text-text-primary">{b.court_name}</p>
-            <p className="text-sm text-text-muted">{fmtLocal(b.start_at)} → {fmtLocal(b.end_at)}</p>
+            <p className="text-sm text-text-muted">{fmtLocal(b.start_at)} to {fmtLocal(b.end_at)}</p>
             {b.reason && <p className="text-sm text-text-muted">{b.reason}</p>}
           </div>
           <button onClick={() => removeBlock(b.id)}

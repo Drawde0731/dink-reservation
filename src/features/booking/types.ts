@@ -3,13 +3,13 @@
 
 export type BookingStep = 1 | 2 | 3 | 4
 
-export interface BookingSelection {
-  date: string | null       // 'YYYY-MM-DD' in Asia/Manila
-  courtId: string | null
-  courtName: string | null
-  startTime: string | null  // 'HH:MM' 24-hour Manila time
-  endTime: string | null    // 'HH:MM' — always startTime + slotDuration
-  durationMinutes: number   // V1 fixed at 60
+// One court+slot selection (multi-court: one per court at most)
+export interface SlotSelection {
+  courtId: string
+  courtName: string
+  startTime: string   // 'HH:MM' 24-hour Manila time
+  endTime: string     // 'HH:MM'
+  durationMinutes: number
 }
 
 export interface GuestDetails {
@@ -20,7 +20,8 @@ export interface GuestDetails {
 
 export interface BookingFlowState {
   step: BookingStep
-  selection: BookingSelection
+  date: string | null          // 'YYYY-MM-DD' Asia/Manila — shared across all selections
+  selections: SlotSelection[]  // one entry per court (max one slot per court)
   guest: GuestDetails
 }
 
@@ -60,4 +61,15 @@ export interface VenueSettingsRow {
   min_advance_minutes: number
   hold_duration_minutes: number
   slot_duration_minutes: number
+}
+
+// Legacy alias — used in a few places that still reference BookingSelection
+// Remove once all callers are updated
+export type BookingSelection = {
+  date: string | null
+  courtId: string | null
+  courtName: string | null
+  startTime: string | null
+  endTime: string | null
+  durationMinutes: number
 }

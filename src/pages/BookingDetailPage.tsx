@@ -115,7 +115,7 @@ export function BookingDetailPage() {
           <p className="text-text-muted">
             Use the link in your confirmation email to view your booking details.
           </p>
-          <Link to="/" className="mt-4 inline-block text-sm text-brand-green-dark underline">← Home</Link>
+          <Link to="/" className="mt-4 inline-block text-sm text-brand-green-dark underline">Home</Link>
         </div>
       </div>
     )
@@ -128,7 +128,7 @@ export function BookingDetailPage() {
           <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
             <p className="text-red-700 font-medium">Booking not found</p>
             <p className="text-sm text-red-600 mt-1">{fetchError}</p>
-            <Link to="/" className="mt-4 inline-block text-sm text-red-700 underline">← Home</Link>
+            <Link to="/" className="mt-4 inline-block text-sm text-red-700 underline">Home</Link>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function BookingDetailPage() {
         {justCancelled && !cancelDone && (
           <div className="rounded-xl border border-brand-border bg-brand-surface p-4 text-center">
             <p className="text-sm text-text-muted">Payment was not completed. Your slot is still held for a few more minutes.</p>
-            <Link to="/book" className="mt-2 inline-block text-sm text-brand-green-dark underline">Book again →</Link>
+            <Link to="/book" className="mt-2 inline-block text-sm text-brand-green-dark underline">Book again</Link>
           </div>
         )}
 
@@ -259,7 +259,7 @@ export function BookingDetailPage() {
 
         <div className="text-center">
           <Link to="/" className="text-sm text-brand-green-dark underline hover:opacity-80">
-            ← Back to home
+            Back to home
           </Link>
         </div>
       </div>

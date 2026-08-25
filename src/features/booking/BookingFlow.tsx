@@ -8,18 +8,12 @@ import { Step3Details } from './steps/Step3Details'
 import { Step4Summary } from './steps/Step4Summary'
 import { useVenueData } from './hooks/useVenueData'
 import { supabase } from '../../lib/supabase'
-import type { BookingFlowState } from './types'
+import type { BookingFlowState, SlotSelection } from './types'
 
 const INITIAL_STATE: BookingFlowState = {
   step: 1,
-  selection: {
-    date: null,
-    courtId: null,
-    courtName: null,
-    startTime: null,
-    endTime: null,
-    durationMinutes: 60,
-  },
+  date: null,
+  selections: [],
   guest: { name: '', email: '', phone: '' },
 }
 
@@ -35,20 +29,26 @@ export function BookingFlow() {
   const [holdError, setHoldError] = useState<HoldError | null>(null)
   const navigate = useNavigate()
 
-  function updateSelection(partial: Partial<BookingFlowState['selection']>) {
+  function setDate(date: string) {
+    setFlow(f => ({ ...f, date, selections: [] }))  // clear selections when date changes
+  }
+
+  // Toggle a slot for a court: deselect if same slot clicked again, replace if different slot, add if new court
+  function toggleSlot(courtId: string, courtName: string, startTime: string, endTime: string) {
     setFlow(f => {
-      // Reset court/time when date changes
-      const dateChanged = partial.date !== undefined && partial.date !== f.selection.date
-      return {
-        ...f,
-        selection: {
-          ...f.selection,
-          ...partial,
-          ...(dateChanged
-            ? { courtId: null, courtName: null, startTime: null, endTime: null }
-            : {}),
-        },
+      const existing = f.selections.find(s => s.courtId === courtId)
+      if (existing?.startTime === startTime) {
+        // Same slot clicked → deselect
+        return { ...f, selections: f.selections.filter(s => s.courtId !== courtId) }
       }
+      const slotMin = data?.settings?.slot_duration_minutes ?? 60
+      const newSel: SlotSelection = { courtId, courtName, startTime, endTime, durationMinutes: slotMin }
+      if (existing) {
+        // Different slot for same court → replace
+        return { ...f, selections: f.selections.map(s => s.courtId === courtId ? newSel : s) }
+      }
+      // New court → add
+      return { ...f, selections: [...f.selections, newSel] }
     })
   }
 
@@ -59,70 +59,76 @@ export function BookingFlow() {
   function next() { setFlow(f => ({ ...f, step: Math.min(4, f.step + 1) as BookingFlowState['step'] })) }
   function back() { setFlow(f => ({ ...f, step: Math.max(1, f.step - 1) as BookingFlowState['step'] })) }
 
-  // Calls the create-hold Edge Function.
-  // Phase 6 inserts the PayMongo payment step after this succeeds:
-  //   1. create-hold → { booking_reference, hold_expires_at, management_token }
-  //   2. (Phase 6) create PayMongo payment intent → redirect to PayMongo checkout
-  //   3. (Phase 6) PayMongo webhook → confirm booking → send email (Phase 7)
-  //   4. Redirect to /booking/{reference}?token={management_token}
+  // Creates holds for all selected courts in parallel, then one combined PayMongo checkout.
   async function handleBook(turnstileToken: string) {
-    const { selection, guest } = flow
-    if (!selection.courtId || !selection.date || !selection.startTime || !selection.endTime) return
+    const { date, selections, guest } = flow
+    if (!date || selections.length === 0) return
 
     setIsSubmitting(true)
     setHoldError(null)
 
     try {
-      const { data: result, error: fnErr } = await supabase.functions.invoke('create-hold', {
-        body: {
-          court_id: selection.courtId,
-          date: selection.date,
-          start_time: selection.startTime,
-          end_time: selection.endTime,
-          customer_name: guest.name.trim(),
-          customer_email: guest.email.trim().toLowerCase(),
-          customer_phone: guest.phone.trim(),
-          turnstile_token: turnstileToken,
-        },
-      })
+      // 1. Create holds for all selections in parallel
+      const holdResults = await Promise.all(
+        selections.map(sel =>
+          supabase.functions.invoke('create-hold', {
+            body: {
+              court_id: sel.courtId,
+              date,
+              start_time: sel.startTime,
+              end_time: sel.endTime,
+              customer_name: guest.name.trim(),
+              customer_email: guest.email.trim().toLowerCase(),
+              customer_phone: guest.phone.trim(),
+              turnstile_token: turnstileToken,
+            },
+          })
+        )
+      )
 
-      if (fnErr) {
-        setHoldError({ code: 'NETWORK_ERROR', message: fnErr.message })
-        return
-      }
-
-      if (result?.error) {
-        setHoldError({ code: result.code ?? 'UNKNOWN', message: result.error })
-        // If the slot was taken, go back to step 2 so they can pick another time
-        if (result.code === 'SLOT_TAKEN') {
-          setFlow(f => ({ ...f, step: 2, selection: { ...f.selection, courtId: null, courtName: null, startTime: null, endTime: null } }))
+      // Check for any hold errors
+      for (let i = 0; i < holdResults.length; i++) {
+        const { data: result, error: fnErr } = holdResults[i]
+        if (fnErr) {
+          setHoldError({ code: 'NETWORK_ERROR', message: fnErr.message })
+          return
         }
-        return
+        if (result?.error) {
+          const sel = selections[i]
+          const msg = result.code === 'SLOT_TAKEN'
+            ? `${sel.courtName} (${sel.startTime}–${sel.endTime}) was just booked by someone else. Please pick a different time.`
+            : result.error
+          setHoldError({ code: result.code ?? 'UNKNOWN', message: msg })
+          if (result.code === 'SLOT_TAKEN') {
+            // Remove the taken slot so user picks again
+            setFlow(f => ({ ...f, step: 2, selections: f.selections.filter(s => s.courtId !== sel.courtId) }))
+          }
+          return
+        }
       }
 
-      // Step 2: create PayMongo checkout session
-      const ref = result.booking_reference as string
-      const token = result.management_token as string
+      // 2. Collect booking references + management tokens
+      const booking_references = holdResults.map(r => r.data.booking_reference as string)
+      const management_tokens  = holdResults.map(r => r.data.management_token as string)
 
+      // 3. Create one combined PayMongo checkout session
       const { data: checkoutResult, error: checkoutErr } = await supabase.functions.invoke(
         'create-checkout-session',
-        { body: { booking_reference: ref, management_token: token } },
+        { body: { booking_references, management_tokens } },
       )
 
       if (checkoutErr || checkoutResult?.error) {
-        // Checkout session creation failed. Hold still exists and will expire.
-        // Redirect to booking detail so the customer knows their reference.
         setHoldError({
           code: checkoutResult?.code ?? 'CHECKOUT_ERROR',
           message: checkoutResult?.error ?? checkoutErr?.message ?? 'Failed to start payment. Your slot is held for 10 minutes.',
         })
-        navigate(`/booking/${ref}?token=${token}`)
+        // Navigate to first booking detail page
+        navigate(`/booking/${booking_references[0]}?token=${management_tokens[0]}`)
         return
       }
 
-      // Redirect to PayMongo checkout (full page navigation)
-      const checkoutUrl = checkoutResult.checkout_url as string
-      window.location.href = checkoutUrl
+      // 4. Redirect to PayMongo checkout
+      window.location.href = checkoutResult.checkout_url as string
     } finally {
       setIsSubmitting(false)
     }
@@ -167,30 +173,26 @@ export function BookingFlow() {
       {holdError && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-700">{holdError.message}</p>
-          {holdError.code === 'SLOT_TAKEN' && (
-            <p className="text-xs text-red-600 mt-1">
-              Someone else booked that slot just now. Please select a different time.
-            </p>
-          )}
         </div>
       )}
 
       <div className="bg-white rounded-2xl border border-brand-border p-6 shadow-sm">
         {flow.step === 1 && (
           <Step1Date
-            selection={flow.selection}
+            date={flow.date}
             settings={data.settings}
-            onUpdate={updateSelection}
+            onDateSelect={setDate}
             onNext={next}
           />
         )}
         {flow.step === 2 && (
           <Step2Slot
-            selection={flow.selection}
+            date={flow.date}
+            selections={flow.selections}
             courts={data.courts}
             pricing={data.pricing}
             settings={data.settings}
-            onUpdate={updateSelection}
+            onToggleSlot={toggleSlot}
             onNext={next}
             onBack={back}
           />
@@ -205,7 +207,8 @@ export function BookingFlow() {
         )}
         {flow.step === 4 && (
           <Step4Summary
-            selection={flow.selection}
+            date={flow.date}
+            selections={flow.selections}
             guest={flow.guest}
             pricing={data.pricing}
             onBack={back}

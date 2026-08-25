@@ -56,9 +56,9 @@ export function AdminAuditPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold text-text-primary">Audit Log</h1>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Newer</Button>
+          <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Newer</Button>
           <span className="text-sm text-text-muted">Page {page + 1}</span>
-          <Button variant="ghost" size="sm" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>Older →</Button>
+          <Button variant="ghost" size="sm" disabled={!hasMore} onClick={() => setPage(p => p + 1)}>Older</Button>
         </div>
       </div>
 

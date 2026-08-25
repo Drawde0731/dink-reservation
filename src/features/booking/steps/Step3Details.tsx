@@ -99,10 +99,10 @@ export function Step3Details({ guest, onUpdate, onNext, onBack }: Props) {
 
       <div className="flex gap-3">
         <Button variant="secondary" size="lg" onClick={onBack} className="flex-1">
-          ← Back
+          Back
         </Button>
         <Button variant="primary" size="lg" onClick={handleSubmit} className="flex-1">
-          Review Booking →
+          Review Booking
         </Button>
       </div>
     </div>

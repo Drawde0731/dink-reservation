@@ -1,11 +1,11 @@
 import { Button } from '../../../components/ui/Button'
 import { BookingCalendar } from '../components/BookingCalendar'
-import type { BookingSelection, VenueSettingsRow } from '../types'
+import type { VenueSettingsRow } from '../types'
 
 interface Props {
-  selection: BookingSelection
+  date: string | null
   settings: VenueSettingsRow
-  onUpdate: (partial: Partial<BookingSelection>) => void
+  onDateSelect: (date: string) => void
   onNext: () => void
 }
 
@@ -17,11 +17,12 @@ function addDays(dateStr: string, days: number): string {
 
 function formatDisplayDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(y, m - 1, d)
-  return dt.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  return new Date(y, m - 1, d).toLocaleDateString('en-PH', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  })
 }
 
-export function Step1Date({ selection, settings, onUpdate, onNext }: Props) {
+export function Step1Date({ date, settings, onDateSelect, onNext }: Props) {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date())
   const maxDate = addDays(today, settings.booking_window_days)
 
@@ -35,14 +36,14 @@ export function Step1Date({ selection, settings, onUpdate, onNext }: Props) {
       </div>
 
       <BookingCalendar
-        selectedDate={selection.date}
-        onDateSelect={(date) => onUpdate({ date })}
+        selectedDate={date}
+        onDateSelect={onDateSelect}
         maxDate={maxDate}
       />
 
-      {selection.date && (
+      {date && (
         <p className="text-sm text-center text-brand-green-dark font-medium">
-          {formatDisplayDate(selection.date)}
+          {formatDisplayDate(date)}
         </p>
       )}
 
@@ -50,10 +51,10 @@ export function Step1Date({ selection, settings, onUpdate, onNext }: Props) {
         variant="primary"
         size="lg"
         className="w-full"
-        disabled={!selection.date}
+        disabled={!date}
         onClick={onNext}
       >
-        Next: Select Time →
+        Next: Select Time
       </Button>
     </div>
   )
