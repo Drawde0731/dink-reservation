@@ -61,7 +61,7 @@ const NAV_LINKS = [
 ]
 
 function Nav() {
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 60)
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -74,9 +74,8 @@ function Nav() {
     <header
       className={cn(
         'fixed top-0 inset-x-0 z-50 transition-all duration-300',
-        scrolled
-          ? 'bg-[#0d1a10]/96 backdrop-blur-md border-b border-white/5 shadow-lg'
-          : 'bg-transparent'
+        'bg-[#0d1a10]/96 backdrop-blur-md border-b border-white/5',
+        scrolled ? 'shadow-lg' : 'border-transparent'
       )}
     >
       <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
@@ -267,6 +266,121 @@ export function HomePage() {
           }}
           aria-hidden="true"
         />
+
+        {/* Illustrated hero graphic — sporty pickleball + geometric energy */}
+        <svg
+          className="absolute right-0 top-0 h-full w-auto max-w-[56%] pointer-events-none select-none"
+          viewBox="0 0 720 900"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          preserveAspectRatio="xMaxYMid slice"
+        >
+          <defs>
+            <radialGradient id="hg-ball" cx="50%" cy="40%" r="55%">
+              <stop offset="0%" stopColor="#c8e44a" />
+              <stop offset="60%" stopColor="#9DC41A" />
+              <stop offset="100%" stopColor="#6a8e10" />
+            </radialGradient>
+            <radialGradient id="hg-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#9DC41A" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#9DC41A" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="hg-orange-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#E76F51" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#E76F51" stopOpacity="0" />
+            </radialGradient>
+            <filter id="hg-blur">
+              <feGaussianBlur stdDeviation="18" />
+            </filter>
+          </defs>
+
+          {/* Ambient glow behind ball */}
+          <ellipse cx="480" cy="340" rx="260" ry="260" fill="url(#hg-glow)" filter="url(#hg-blur)" />
+
+          {/* Diagonal speed-lines (orange accent) */}
+          <g stroke="#E76F51" strokeWidth="2.5" strokeLinecap="round" opacity="0.55">
+            <line x1="560" y1="50" x2="720" y2="180" />
+            <line x1="530" y1="70" x2="700" y2="200" />
+            <line x1="590" y1="30" x2="720" y2="140" />
+            <line x1="610" y1="10" x2="720" y2="110" />
+          </g>
+
+          {/* Court lines top-right — perspective partial court */}
+          <g stroke="#9DC41A" strokeWidth="2" opacity="0.35" fill="none" strokeLinecap="round">
+            {/* outer boundary */}
+            <rect x="390" y="80" width="300" height="500" rx="4" />
+            {/* net (horizontal midline) */}
+            <line x1="390" y1="330" x2="690" y2="330" strokeDasharray="12 8" strokeWidth="3" />
+            {/* kitchen lines */}
+            <line x1="390" y1="230" x2="690" y2="230" />
+            <line x1="390" y1="430" x2="690" y2="430" />
+            {/* center service line */}
+            <line x1="540" y1="230" x2="540" y2="430" />
+          </g>
+
+          {/* Large pickleball — hero element */}
+          {/* shadow */}
+          <ellipse cx="484" cy="354" rx="148" ry="148" fill="rgba(0,0,0,0.45)" filter="url(#hg-blur)" />
+          {/* body */}
+          <circle cx="480" cy="340" r="145" fill="url(#hg-ball)" />
+          {/* holes pattern — 40 holes arranged in 5 rings */}
+          {[
+            /* ring 1 — 8 holes */
+            ...[0,45,90,135,180,225,270,315].map(a => ({
+              cx: 480 + Math.cos(a * Math.PI/180) * 105,
+              cy: 340 + Math.sin(a * Math.PI/180) * 105,
+              r: 9,
+            })),
+            /* ring 2 — 8 holes */
+            ...[22,67,112,157,202,247,292,337].map(a => ({
+              cx: 480 + Math.cos(a * Math.PI/180) * 68,
+              cy: 340 + Math.sin(a * Math.PI/180) * 68,
+              r: 9,
+            })),
+            /* ring 3 — 4 holes */
+            ...[0,90,180,270].map(a => ({
+              cx: 480 + Math.cos(a * Math.PI/180) * 33,
+              cy: 340 + Math.sin(a * Math.PI/180) * 33,
+              r: 9,
+            })),
+          ].map((h, i) => (
+            <circle key={i} cx={h.cx} cy={h.cy} r={h.r} fill="#1B6B2E" />
+          ))}
+          {/* specular highlight */}
+          <ellipse cx="425" cy="285" rx="44" ry="28" fill="rgba(255,255,255,0.18)" transform="rotate(-30 425 285)" />
+
+          {/* Small orbiting ball — orange accent */}
+          <circle cx="652" cy="168" r="38" fill="#E76F51" opacity="0.92" />
+          <ellipse cx="638" cy="158" rx="12" ry="7" fill="rgba(255,255,255,0.22)" transform="rotate(-30 638 158)" />
+          {/* orange ball holes */}
+          {[0,90,180,270].map((a, i) => (
+            <circle
+              key={i}
+              cx={652 + Math.cos(a * Math.PI/180) * 22}
+              cy={168 + Math.sin(a * Math.PI/180) * 22}
+              r={4.5}
+              fill="#c45733"
+            />
+          ))}
+
+          {/* Motion arc — ball trajectory */}
+          <path
+            d="M 652 168 Q 590 260 480 340"
+            stroke="#E76F51"
+            strokeWidth="2.5"
+            strokeDasharray="8 10"
+            fill="none"
+            opacity="0.45"
+          />
+
+          {/* Tiny scatter balls */}
+          <circle cx="350" cy="620" r="18" fill="#9DC41A" opacity="0.3" />
+          <circle cx="680" cy="600" r="12" fill="#E76F51" opacity="0.25" />
+          <circle cx="310" cy="200" r="10" fill="#9DC41A" opacity="0.2" />
+
+          {/* Bottom orange glow */}
+          <ellipse cx="480" cy="820" rx="200" ry="120" fill="url(#hg-orange-glow)" filter="url(#hg-blur)" />
+        </svg>
 
         <div className="relative mx-auto w-full max-w-6xl px-6 pt-28 pb-16">
           {/* Pre-label */}
