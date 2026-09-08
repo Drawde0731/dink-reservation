@@ -251,21 +251,87 @@ export function HomePage() {
 
       {/* ══ HERO ══════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden min-h-[100dvh] flex flex-col justify-center">
-        {/* Court photo */}
-        <div
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat"
-          style={{ backgroundImage: "url('/hero.avif')" }}
+        {/* Geometric background — full-bleed SVG, no photo */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none select-none"
+          viewBox="0 0 1440 900"
+          xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
-        />
-        {/* Dark gradient: heavier left, lighter right, vignette bottom */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(110deg, rgba(13,26,16,0.95) 0%, rgba(13,26,16,0.82) 38%, rgba(13,26,16,0.50) 65%, rgba(13,26,16,0.22) 100%), linear-gradient(to top, rgba(13,26,16,0.82) 0%, transparent 45%)',
-          }}
-          aria-hidden="true"
-        />
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <radialGradient id="bg-glow-center" cx="60%" cy="45%" r="55%">
+              <stop offset="0%" stopColor="#1a3820" />
+              <stop offset="100%" stopColor="#0d1a10" />
+            </radialGradient>
+            <radialGradient id="bg-lime-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#9DC41A" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#9DC41A" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="bg-orange-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#E76F51" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#E76F51" stopOpacity="0" />
+            </radialGradient>
+            <filter id="bg-blur-heavy">
+              <feGaussianBlur stdDeviation="40" />
+            </filter>
+            <filter id="bg-blur-light">
+              <feGaussianBlur stdDeviation="12" />
+            </filter>
+          </defs>
+
+          {/* Base dark ground */}
+          <rect width="1440" height="900" fill="url(#bg-glow-center)" />
+
+          {/* Ambient lime glow top-right */}
+          <ellipse cx="1080" cy="320" rx="480" ry="380" fill="url(#bg-lime-glow)" filter="url(#bg-blur-heavy)" />
+
+          {/* Ambient orange glow bottom-right */}
+          <ellipse cx="1200" cy="780" rx="320" ry="220" fill="url(#bg-orange-glow)" filter="url(#bg-blur-heavy)" />
+
+          {/* Diagonal slash shapes — structural geometry */}
+          <polygon points="820,0 1440,0 1440,900 980,900" fill="#111f14" opacity="0.55" />
+          <polygon points="920,0 1440,0 1440,900 1080,900" fill="#0f1c12" opacity="0.45" />
+
+          {/* Accent diagonal stripe — lime */}
+          <polygon points="870,0 900,0 1100,900 1070,900" fill="#9DC41A" opacity="0.06" />
+
+          {/* Accent diagonal stripe — orange */}
+          <polygon points="940,0 960,0 1160,900 1140,900" fill="#E76F51" opacity="0.05" />
+
+          {/* Court lines — bottom-left corner fragment, ground-level perspective feel */}
+          <g stroke="#9DC41A" strokeWidth="1.5" opacity="0.18" fill="none">
+            {/* baseline */}
+            <line x1="0" y1="820" x2="680" y2="820" />
+            {/* sideline */}
+            <line x1="0" y1="600" x2="0" y2="900" />
+            <line x1="680" y1="600" x2="680" y2="900" />
+            {/* kitchen line */}
+            <line x1="0" y1="730" x2="680" y2="730" />
+            {/* center */}
+            <line x1="340" y1="730" x2="340" y2="820" />
+            {/* net dashed */}
+            <line x1="0" y1="680" x2="680" y2="680" strokeDasharray="16 10" strokeWidth="2.5" />
+          </g>
+
+          {/* Large dot-grid texture — upper left quadrant */}
+          {Array.from({ length: 8 }, (_, row) =>
+            Array.from({ length: 12 }, (_, col) => (
+              <circle
+                key={`${row}-${col}`}
+                cx={col * 52 + 30}
+                cy={row * 52 + 30}
+                r="1.5"
+                fill="#9DC41A"
+                opacity="0.12"
+              />
+            ))
+          )}
+
+          {/* Thin horizontal rule — editorial feel */}
+          <line x1="40" y1="560" x2="340" y2="560" stroke="#9DC41A" strokeWidth="1" opacity="0.25" />
+          <line x1="40" y1="564" x2="160" y2="564" stroke="#9DC41A" strokeWidth="1" opacity="0.12" />
+        </svg>
 
         {/* Illustrated hero graphic — sporty pickleball + geometric energy */}
         <svg
