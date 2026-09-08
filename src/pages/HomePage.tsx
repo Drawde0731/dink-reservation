@@ -538,15 +538,56 @@ export function HomePage() {
       </section>
 
       {/* ══ CINEMATIC STRIP ═══════════════════════════════════════════ */}
-      <section className="relative h-[42vh] sm:h-[52vh] overflow-hidden flex items-center justify-center">
+      <section className="relative overflow-hidden bg-[#0d1a10] flex items-center justify-center" style={{ minHeight: '44vh' }}>
+        {/* Abstract pickleball court — top-down geometry */}
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox="0 0 1200 440"
+          preserveAspectRatio="xMidYMid slice"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          {/* Court surface */}
+          <rect x="160" y="40" width="880" height="360" rx="6" fill="#122318" />
+          {/* Outer boundary */}
+          <rect x="160" y="40" width="880" height="360" rx="6" fill="none" stroke="#9DC41A" strokeWidth="3" opacity="0.35" />
+          {/* Center line */}
+          <line x1="600" y1="40" x2="600" y2="400" stroke="#9DC41A" strokeWidth="2" opacity="0.25" />
+          {/* Kitchen lines (non-volley zones) — left */}
+          <rect x="160" y="113" width="220" height="214" fill="none" stroke="#9DC41A" strokeWidth="2" opacity="0.2" />
+          {/* Kitchen lines — right */}
+          <rect x="820" y="113" width="220" height="214" fill="none" stroke="#9DC41A" strokeWidth="2" opacity="0.2" />
+          {/* Net */}
+          <line x1="160" y1="220" x2="1040" y2="220" stroke="white" strokeWidth="3" opacity="0.18" strokeDasharray="8 5" />
+          {/* Center service line — top half */}
+          <line x1="380" y1="113" x2="820" y2="113" stroke="#9DC41A" strokeWidth="1.5" opacity="0.18" />
+          {/* Center service line — bottom half */}
+          <line x1="380" y1="327" x2="820" y2="327" stroke="#9DC41A" strokeWidth="1.5" opacity="0.18" />
+          {/* Mid service line */}
+          <line x1="600" y1="113" x2="600" y2="327" stroke="#9DC41A" strokeWidth="1.5" opacity="0.18" />
+          {/* Pickleball — subtle, right side */}
+          <circle cx="940" cy="340" r="36" fill="#9DC41A" opacity="0.08" />
+          <circle cx="940" cy="340" r="36" fill="none" stroke="#9DC41A" strokeWidth="2" opacity="0.15" />
+          <circle cx="940" cy="340" r="6" fill="none" stroke="#9DC41A" strokeWidth="1.5" opacity="0.2" />
+          <ellipse cx="940" cy="318" rx="5" ry="3" fill="#9DC41A" opacity="0.15" />
+          <ellipse cx="940" cy="362" rx="5" ry="3" fill="#9DC41A" opacity="0.15" />
+          <ellipse cx="918" cy="340" rx="3" ry="5" fill="#9DC41A" opacity="0.15" />
+          <ellipse cx="962" cy="340" rx="3" ry="5" fill="#9DC41A" opacity="0.15" />
+        </svg>
+
+        {/* Dark vignette */}
         <div
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat"
-          style={{ backgroundImage: "url('/hero.avif')" }}
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(13,26,16,0.75) 100%)' }}
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-[#0d1a10]/65" aria-hidden="true" />
-        <div className="relative text-center px-6" data-reveal>
-          <p className="text-2xl sm:text-4xl lg:text-5xl font-black text-white/90 tracking-tight leading-tight">
+
+        {/* Text */}
+        <div className="relative text-center px-6 py-16" data-reveal>
+          <p className="text-[0.6rem] font-bold tracking-[0.3em] uppercase text-[#9DC41A]/60 mb-4">
+            Beanstalk Dink
+          </p>
+          <p className="text-3xl sm:text-5xl lg:text-6xl font-black text-white/90 tracking-tight leading-tight">
             The game is on.
             <br />
             <span className="text-[#9DC41A]">The court is yours.</span>
